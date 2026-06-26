@@ -76,7 +76,7 @@ export const authRouter = router({
         where: { email: input.email, success: false },
       });
 
-      const roleCodes = user.roles.map((r) => r.role.code);
+      const roleCodes = user.roles.map((r: { role: { code: string } }) => r.role.code);
       const token = signToken({ userId: user.id, roles: roleCodes });
 
       await recordLoginAttempt(input.email, true, ipAddress, userAgent);
@@ -107,7 +107,7 @@ export const authRouter = router({
         id: user.id,
         email: user.email,
         name: user.name,
-        roles: user.roles.map((r) => ({ code: r.role.code, name: r.role.name })),
+        roles: user.roles.map((r: { role: { code: string; name: string } }) => ({ code: r.role.code, name: r.role.name })),
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       };
