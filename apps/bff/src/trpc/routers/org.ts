@@ -38,7 +38,7 @@ export const orgRouter = router({
         prisma.organization.count(),
       ]);
       return {
-        items: items.map((i) => ({
+        items: items.map((i: { id: string; name: string; code: string; parentId: string | null; sort: number; createdAt: Date; updatedAt: Date }) => ({
           ...i,
           createdAt: i.createdAt.toISOString(),
           updatedAt: i.updatedAt.toISOString(),

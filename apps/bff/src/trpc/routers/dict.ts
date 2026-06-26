@@ -52,7 +52,7 @@ export const dictRouter = router({
         prisma.dictType.count({ where }),
       ]);
       return {
-        items: items.map((i) => ({
+        items: items.map((i: { id: string; name: string; code: string; kind: string; sort: number; status: boolean; remark: string | null; createdAt: Date; updatedAt: Date; _count: { items: number } }) => ({
           id: i.id,
           name: i.name,
           code: i.code,
@@ -88,7 +88,7 @@ export const dictRouter = router({
       ...item,
       createdAt: item.createdAt.toISOString(),
       updatedAt: item.updatedAt.toISOString(),
-      items: item.items.map((d) => ({
+        items: item.items.map((d: { id: string; dictTypeId: string; label: string; value: string; color: string | null; sort: number; status: boolean; remark: string | null; createdAt: Date; updatedAt: Date }) => ({
         ...d,
         createdAt: d.createdAt.toISOString(),
         updatedAt: d.updatedAt.toISOString(),
@@ -138,7 +138,7 @@ export const dictRouter = router({
         prisma.dictData.count({ where: { dictTypeId: input.dictTypeId } }),
       ]);
       return {
-        items: items.map((d) => ({
+        items: items.map((d: { id: string; dictTypeId: string; label: string; value: string; color: string | null; sort: number; status: boolean; remark: string | null; createdAt: Date; updatedAt: Date }) => ({
           ...d,
           createdAt: d.createdAt.toISOString(),
           updatedAt: d.updatedAt.toISOString(),

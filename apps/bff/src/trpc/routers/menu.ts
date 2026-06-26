@@ -45,7 +45,7 @@ export const menuRouter = router({
         prisma.menu.count(),
       ]);
       return {
-        items: items.map((i) => ({
+        items: items.map((i: { id: string; name: string; code: string; parentId: string | null; path: string | null; component: string | null; icon: string | null; type: string; permission: string | null; sort: number; isVisible: boolean; isCache: boolean; createdAt: Date; updatedAt: Date }) => ({
           ...i,
           createdAt: i.createdAt.toISOString(),
           updatedAt: i.updatedAt.toISOString(),
@@ -128,7 +128,7 @@ export const menuRouter = router({
         roleMenuIds.add(rm.menuId);
       }
     }
-    const directMenuIds = new Set(user.menus.map((um) => um.menuId));
+    const directMenuIds = new Set(user.menus.map((um: { menuId: string }) => um.menuId));
 
     const allIds = [...roleMenuIds, ...directMenuIds];
     const menus = await prisma.menu.findMany({
@@ -138,7 +138,7 @@ export const menuRouter = router({
 
     return {
       menuIds: allIds,
-      menus: menus.map((m) => ({
+      menus: menus.map((m: { id: string; name: string; code: string; parentId: string | null; path: string | null; component: string | null; icon: string | null; type: string; permission: string | null; sort: number; isVisible: boolean; isCache: boolean; createdAt: Date; updatedAt: Date }) => ({
         ...m,
         createdAt: m.createdAt.toISOString(),
         updatedAt: m.updatedAt.toISOString(),
@@ -164,7 +164,7 @@ export const menuRouter = router({
         roleMenuIds.add(rm.menuId);
       }
     }
-    const directMenuIds = new Set(user.menus.map((um) => um.menuId));
+    const directMenuIds = new Set(user.menus.map((um: { menuId: string }) => um.menuId));
 
     const allIds = new Set([...roleMenuIds, ...directMenuIds]);
     const menus = await prisma.menu.findMany({
@@ -174,7 +174,7 @@ export const menuRouter = router({
 
     return {
       menuIds: [...allIds],
-      menus: menus.map((m) => ({
+      menus: menus.map((m: { id: string; name: string; code: string; parentId: string | null; path: string | null; component: string | null; icon: string | null; type: string; permission: string | null; sort: number; isVisible: boolean; isCache: boolean; createdAt: Date; updatedAt: Date }) => ({
         ...m,
         createdAt: m.createdAt.toISOString(),
         updatedAt: m.updatedAt.toISOString(),

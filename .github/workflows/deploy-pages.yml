@@ -51,6 +51,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build shared package
+        run: pnpm --filter @platform/shared build
+
+      - name: Generate Prisma client
+        run: pnpm --filter @platform/bff exec prisma generate
+        env:
+          DATABASE_URL: "postgresql://localhost:5432/lankit"
+
       - name: Build web (static export)
         run: pnpm --filter @platform/web build
         env:

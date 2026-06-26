@@ -7,7 +7,7 @@ async function validatePassword(password: string): Promise<void> {
   const settings = await prisma.systemSetting.findMany({
     where: { key: { startsWith: 'password.' } },
   });
-  const map = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+  const map = Object.fromEntries(settings.map((s: { key: string; value: string }) => [s.key, s.value]));
 
   const minLength = parseInt(map['password.minLength'] ?? '8', 10);
   const requireUppercase = map['password.requireUppercase'] === 'true';
@@ -95,13 +95,13 @@ export const userRouter = router({
       ]);
 
       return {
-        items: users.map((u) => ({
+        items: users.map((u: { id: string; email: string; name: string; isActive: boolean; organization: { id: string; name: string } | null; roles: { role: { id: string; name: string; code: string } }[]; lastLoginAt: Date | null; createdAt: Date; updatedAt: Date }) => ({
           id: u.id,
           email: u.email,
           name: u.name,
           isActive: u.isActive,
           organization: u.organization,
-          roles: u.roles.map((r) => r.role),
+          roles: u.roles.map((r: { role: { id: string; name: string; code: string } }) => r.role),
           lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
           createdAt: u.createdAt.toISOString(),
           updatedAt: u.updatedAt.toISOString(),
@@ -129,7 +129,7 @@ export const userRouter = router({
         name: user.name,
         isActive: user.isActive,
         organization: user.organization,
-        roles: user.roles.map((r) => r.role),
+        roles: user.roles.map((r: { role: { id: string; name: string; code: string } }) => r.role),
         lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),

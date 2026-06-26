@@ -67,7 +67,7 @@ export const fileRouter = router({
         prisma.fileRecord.count(),
       ]);
       return {
-        items: items.map((f) => ({
+        items: items.map((f: { id: string; originalName: string; fileName: string; ext: string | null; mimeType: string; size: number; url: string; uploadedBy: string | null; createdAt: Date }) => ({
           id: f.id,
           originalName: f.originalName,
           fileName: f.fileName,

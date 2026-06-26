@@ -38,7 +38,7 @@ export const roleRouter = router({
         prisma.role.count(),
       ]);
       return {
-        items: items.map((i) => ({
+        items: items.map((i: { id: string; name: string; code: string; description: string | null; isSystem: boolean; sort: number; createdAt: Date; updatedAt: Date; menus: { menuId: string }[]; _count: { users: number } }) => ({
           id: i.id,
           name: i.name,
           code: i.code,
@@ -67,8 +67,8 @@ export const roleRouter = router({
     if (!item) throw new Error('角色不存在');
     return {
       ...item,
-      menuIds: item.menus.map((m) => m.menuId),
-      users: item.users.map((u) => u.user),
+      menuIds: item.menus.map((m: { menuId: string }) => m.menuId),
+      users: item.users.map((u: { user: { id: string; name: string; email: string } }) => u.user),
       createdAt: item.createdAt.toISOString(),
       updatedAt: item.updatedAt.toISOString(),
     };
