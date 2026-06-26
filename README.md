@@ -94,12 +94,12 @@ pnpm dev
 
 启动后各服务地址：
 
-| 服务 | 地址 |
-|---|---|
-| Admin 后台 | http://localhost:5175 |
-| BFF API | http://localhost:3000 |
-| PC 官网 | http://localhost:3001 |
-| H5 移动端 | http://localhost:3002 |
+| 服务 | 本地地址 | 线上地址 |
+|---|---|---|
+| PC 官网 | http://localhost:3001 | https://zbody.github.io/lankit |
+| H5 移动端 | http://localhost:3002 | https://zbody.github.io/lankit/h5 |
+| Admin 后台 | http://localhost:5175 | 待部署 |
+| BFF API | http://localhost:3000 | 待部署 |
 
 ### Docker 部署
 

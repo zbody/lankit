@@ -1,13 +1,15 @@
-# 构建 apps/web 并部署到 GitHub Pages
+# 构建 apps/web 和 apps/h5 并部署到 GitHub Pages
 #
 # 使用方式：
 # 1. 将代码推送到 GitHub 仓库
 # 2. 仓库 Settings → Pages → Source 选择 "GitHub Actions"
 # 3. 推送 main 分支即自动构建部署
 #
-# 如果使用了自定义域名，在仓库 Settings → Pages 中配置即可
+# 部署后访问地址：
+#   PC 官网: https://zbody.github.io/lankit/
+#   H5 移动端: https://zbody.github.io/lankit/h5/
 
-name: Deploy Web to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -16,6 +18,7 @@ on:
       - master
     paths:
       - 'apps/web/**'
+      - 'apps/h5/**'
       - 'packages/**'
       - 'pnpm-lock.yaml'
       - '.github/workflows/deploy-pages.yml'
@@ -51,8 +54,17 @@ jobs:
       - name: Build web (static export)
         run: pnpm --filter @platform/web build
         env:
-          # GitHub Pages 部署在子路径下，自动检测仓库名作为 basePath
           NEXT_PUBLIC_BASE_PATH: ${{ github.event.repository.name && format('/{0}', github.event.repository.name) || '' }}
+
+      - name: Build h5 (static export)
+        run: pnpm --filter @platform/h5 build
+        env:
+          NEXT_PUBLIC_BASE_PATH: ${{ github.event.repository.name && format('/{0}/h5', github.event.repository.name) || '/h5' }}
+
+      - name: Merge h5 output into web output
+        run: |
+          mkdir -p apps/web/out/h5
+          cp -r apps/h5/out/* apps/web/out/h5/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
