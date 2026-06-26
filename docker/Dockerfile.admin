@@ -1,0 +1,26 @@
+FROM node:20-alpine AS build
+RUN corepack enable && corepack prepare pnpm@9 --activate
+WORKDIR /app
+
+# 依赖缓存层
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
+COPY apps/admin/package.json ./apps/admin/
+COPY packages/config/package.json ./packages/config/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN pnpm install --frozen-lockfile
+
+# 构建 shared
+COPY packages/shared/ ./packages/shared/
+RUN pnpm --filter @platform/shared exec tsc
+
+# 构建 admin
+COPY apps/admin/ ./apps/admin/
+RUN pnpm --filter @platform/admin build
+
+# nginx 运行阶段
+FROM nginx:alpine
+COPY --from=build /app/apps/admin/dist /usr/share/nginx/html
+COPY docker/nginx-admin.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,40 @@
+{
+  "name": "@platform/bff",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "types": "./src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "clean": "node -e \"fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('.turbo',{recursive:true,force:true});fs.rmSync('node_modules',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "@hono/trpc-server": "^0.3.0",
+    "@platform/shared": "workspace:*",
+    "@prisma/client": "^6.1.0",
+    "@trpc/server": "^10.45.2",
+    "bcryptjs": "^2.4.3",
+    "hono": "^4.6.14",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.24.1"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.0",
+    "prisma": "^6.1.0",
+    "tsx": "^4.19.2"
+  }
+}

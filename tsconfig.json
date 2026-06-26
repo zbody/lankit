@@ -1,0 +1,10 @@
+{
+  "extends": "@platform/config/tsconfig/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@platform/*": ["packages/*/src"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".turbo"]
+}

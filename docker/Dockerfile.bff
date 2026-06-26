@@ -1,0 +1,39 @@
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@9 --activate
+WORKDIR /app
+
+# 复制依赖清单 (利用 Docker 缓存)
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
+COPY apps/bff/package.json ./apps/bff/
+COPY apps/web/package.json ./apps/web/
+COPY apps/h5/package.json ./apps/h5/
+COPY apps/admin/package.json ./apps/admin/
+COPY apps/mobile/package.json ./apps/mobile/
+COPY packages/config/package.json ./packages/config/
+COPY packages/shared/package.json ./packages/shared/
+
+# 安装依赖
+RUN pnpm install --frozen-lockfile
+
+# 复制源码
+COPY packages/ ./packages/
+COPY apps/bff/ ./apps/bff/
+
+# 构建 shared 包
+RUN pnpm --filter @platform/shared exec tsc
+RUN pnpm --filter @platform/bff build
+
+# 生产镜像
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3000
+
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/packages ./packages
+COPY --from=base /app/apps/bff/dist ./apps/bff/dist
+COPY --from=base /app/apps/bff/package.json ./apps/bff/
+
+EXPOSE 3000
+CMD ["node", "apps/bff/dist/index.js"]

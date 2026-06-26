@@ -1,0 +1,250 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  parentId  String?  @map("parent_id")
+  parent    Organization? @relation("OrgTree", fields: [parentId], references: [id])
+  children  Organization[] @relation("OrgTree")
+  users     User[]
+  sort      Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("organizations")
+  @@index([parentId])
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  password       String
+  organizationId String?  @map("organization_id")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  roles          UserRole[]
+  menus          UserMenu[]
+  isActive       Boolean  @default(true) @map("is_active")
+  lastLoginAt    DateTime? @map("last_login_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+  @@index([organizationId])
+  @@index([email])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  description String?
+  menus       RoleMenu[]
+  users       UserRole[]
+  isSystem    Boolean  @default(false) @map("is_system")
+  sort        Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("roles")
+}
+
+model Menu {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  parentId    String?  @map("parent_id")
+  parent      Menu?    @relation("MenuTree", fields: [parentId], references: [id])
+  children    Menu[]   @relation("MenuTree")
+  path        String?
+  component   String?
+  icon        String?
+  type        MenuType @default(MENU)
+  permission  String?
+  sort        Int      @default(0)
+  isVisible   Boolean  @default(true) @map("is_visible")
+  isCache     Boolean  @default(false) @map("is_cache")
+  roles       RoleMenu[]
+  users       UserMenu[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("menus")
+  @@index([parentId])
+  @@index([code])
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId    String   @map("role_id")
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+  @@index([userId])
+  @@index([roleId])
+}
+
+model RoleMenu {
+  id        String   @id @default(cuid())
+  roleId    String   @map("role_id")
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  menuId    String   @map("menu_id")
+  menu      Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([roleId, menuId])
+  @@map("role_menus")
+  @@index([roleId])
+  @@index([menuId])
+}
+
+model UserMenu {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  menuId    String   @map("menu_id")
+  menu      Menu     @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, menuId])
+  @@map("user_menus")
+  @@index([userId])
+  @@index([menuId])
+}
+
+enum MenuType {
+  DIRECTORY // 目录
+  MENU      // 菜单
+  BUTTON    // 按钮/权限点
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ERROR
+  SUCCESS
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?  @map("user_id")
+  userName   String?  @map("user_name")
+  action     String   // CREATE/UPDATE/DELETE
+  entity     String   // User/Org/Role/Menu
+  entityId   String?  @map("entity_id")
+  oldValues  Json?  @map("old_values")
+  newValues  Json?  @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+  @@index([userId])
+  @@index([createdAt])
+  @@index([entity])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  type      NotificationType @default(INFO)
+  title     String
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  metadata  Json?  @map("metadata")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("notifications")
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?  @map("description")
+  updatedAt   DateTime @default(now()) @map("updated_at")
+
+  @@map("system_settings")
+}
+
+model LoginAttempt {
+  id         String   @id @default(cuid())
+  email      String
+  success    Boolean
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  reason     String?  // 失败原因
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("login_attempts")
+  @@index([email, createdAt])
+  @@index([ipAddress, createdAt])
+}
+
+enum DictKind {
+  STRING
+  NUMBER
+  BOOLEAN
+}
+
+model DictType {
+  id        String    @id @default(cuid())
+  name      String    // 字典名称
+  code      String    @unique // 字典编码
+  kind      DictKind  @default(STRING)
+  sort      Int       @default(0)
+  status    Boolean   @default(true)
+  remark    String?
+  items     DictData[]
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("dict_types")
+}
+
+model DictData {
+  id         String   @id @default(cuid())
+  dictTypeId String   @map("dict_type_id")
+  dictType   DictType @relation(fields: [dictTypeId], references: [id], onDelete: Cascade)
+  label      String
+  value      String
+  color      String?
+  sort       Int      @default(0)
+  status     Boolean  @default(true)
+  remark     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("dict_data")
+  @@index([dictTypeId])
+}
+
+model FileRecord {
+  id           String   @id @default(cuid())
+  originalName String   @map("original_name")
+  fileName     String   @map("file_name")
+  ext          String?
+  mimeType     String   @map("mime_type")
+  size         Int
+  path         String
+  url          String
+  uploadedBy   String?  @map("uploaded_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("file_records")
+  @@index([uploadedBy])
+}

@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    container_name: platform-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-platform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-platform_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-platform}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-platform}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  bff:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.bff
+    container_name: platform-bff
+    restart: unless-stopped
+    ports:
+      - "${BFF_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform_dev}@postgres:5432/${POSTGRES_DB:-platform}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  admin:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.admin
+    container_name: platform-admin
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_PORT:-5175}:80"
+    depends_on:
+      - bff
+
+volumes:
+  postgres_data:

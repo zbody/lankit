@@ -1,0 +1,36 @@
+{
+  "name": "platform",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint -- --fix",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "typecheck": "turbo typecheck",
+    "clean": "turbo clean",
+    "docker:up": "docker compose -f docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f docker/docker-compose.yml down",
+    "docker:build": "docker compose -f docker/docker-compose.yml build",
+    "docker:logs": "docker compose -f docker/docker-compose.yml logs -f",
+    "gen:api": "tsx scripts/generate-api.ts",
+    "db:seed": "pnpm --filter @platform/bff exec tsx prisma/seed.ts",
+    "db:push": "pnpm --filter @platform/bff exec prisma db push",
+    "db:studio": "pnpm --filter @platform/bff exec prisma studio"
+  },
+  "devDependencies": {
+    "@platform/config": "workspace:*",
+    "@playwright/test": "^1.61.1",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.4"
+}
