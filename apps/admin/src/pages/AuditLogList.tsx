@@ -1,10 +1,11 @@
-import { Table, Button, Card, Space, Tag, Typography, Modal, DatePicker, Input, Select } from 'antd';
-import { SearchOutlined, EyeOutlined } from '@ant-design/icons';
+import { Button, Card, Space, Tag, Typography, Modal } from 'antd';
+import { EyeOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { trpc } from '../trpc/client';
 import type { ColumnsType } from 'antd/es/table';
+import DataTable from '../components/DataTable';
+import SearchForm from '../components/SearchForm';
 
-const { RangePicker } = DatePicker;
 const { Text } = Typography;
 
 const actionColors: Record<string, string> = {
@@ -34,6 +35,13 @@ export default function AuditLogListPage() {
   const { data, isLoading, refetch } = trpc.auditLogs.list.useQuery(queryParams);
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const [currentLog, setCurrentLog] = useState<any>(null);
+
+  const searchFields = [
+    { name: 'action', label: '操作类型', type: 'select' as const, options: ['CREATE', 'UPDATE', 'DELETE'].map(a => ({ label: a, value: a })), placeholder: '操作类型', span: 4 },
+    { name: 'entity', label: '实体类型', type: 'select' as const, options: ['USER', 'ORG', 'ROLE', 'MENU'].map(e => ({ label: e, value: e })), placeholder: '实体类型', span: 4 },
+    { name: 'dateRange', label: '时间范围', type: 'dateRange' as const, span: 6 },
+    { name: 'search', label: '搜索用户', type: 'input' as const, placeholder: '搜索用户...', span: 4 },
+  ];
 
   const columns: ColumnsType<any> = [
     {
@@ -67,56 +75,26 @@ export default function AuditLogListPage() {
     },
   ];
 
-  return (
-    <Card
-      title="审计日志"
-      extra={
-        <Button type="primary" icon={<SearchOutlined />} onClick={() => { setPage(1); refetch(); }}>
-          刷新
-        </Button>
-      }
-    >
-      <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }} size="small">
-        <Space>
-          <Select
-            placeholder="操作类型"
-            allowClear
-            style={{ width: 150 }}
-            options={['CREATE', 'UPDATE', 'DELETE'].map(a => ({ label: a, value: a }))}
-            value={filters.action || undefined}
-            onChange={(v: string) => setFilters(f => ({ ...f, action: v }))}
-          />
-          <Select
-            placeholder="实体类型"
-            allowClear
-            style={{ width: 150 }}
-            options={['USER', 'ORG', 'ROLE', 'MENU'].map(e => ({ label: e, value: e }))}
-            value={filters.entity || undefined}
-            onChange={(v: string) => setFilters(f => ({ ...f, entity: v }))}
-          />
-          <RangePicker             onChange={(dates: any) => setFilters(f => ({ ...f, dateRange: dates }))} />
-          <Input
-            placeholder="搜索用户..."
-            style={{ width: 150 }}
-            prefix={<SearchOutlined />}
-            value={filters.search}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(f => ({ ...f, search: e.target.value }))}
-          />
-        </Space>
-      </Space>
+  const handleSearch = () => { setPage(1); refetch(); };
 
-      <Table
+  return (
+    <Card title="审计日志">
+      <SearchForm
+        fields={searchFields}
+        values={filters}
+        onChange={(values) => setFilters(values as any)}
+        onSearch={handleSearch}
+        onReset={() => { setFilters({ action: '', entity: '', dateRange: null, search: '' }); setPage(1); refetch(); }}
+        loading={isLoading}
+      />
+      <DataTable
         dataSource={data?.items}
         columns={columns}
-        rowKey="id"
+        total={data?.total}
+        current={page}
         loading={isLoading}
-        pagination={{
-          current: page,
-          pageSize: 20,
-          total: data?.total,
-          onChange: setPage,
-          showTotal: (total) => `共 ${total} 条`,
-        }}
+        onPageChange={(p) => setPage(p)}
+        onRefresh={() => { setPage(1); refetch(); }}
       />
 
       <Modal

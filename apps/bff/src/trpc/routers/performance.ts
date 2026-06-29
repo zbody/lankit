@@ -29,10 +29,8 @@ export const performanceRouter = router({
       }),
     )
     .query(({ input }) => {
-      return {
-        queries: getSlowQueries(input.thresholdMs),
-        count: getSlowQueries(input.thresholdMs).length,
-      };
+      const queries = getSlowQueries(input.thresholdMs);
+      return { queries, count: queries.length };
     }),
 
   /**

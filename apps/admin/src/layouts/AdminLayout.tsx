@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, useOutlet } from 'react-router-dom';
-import { Layout, Menu, Button, Dropdown, Space, Spin, Badge } from 'antd';
+import { Layout, Menu, Button, Dropdown, Space, Spin, Badge, Breadcrumb } from 'antd';
 import {
   DashboardOutlined,
   MenuOutlined,
@@ -16,6 +16,8 @@ import { useAuth } from '../hooks/useAuth';
 import { trpc } from '../trpc/client';
 import type { MenuProps } from 'antd';
 import AnnouncementModal from '../components/AnnouncementModal';
+import PageTabs from '../components/PageTabs';
+import type { TabInfo } from '../components/PageTabs';
 
 /** 图标名 → React 组件映射（动态从 @ant-design/icons 获取） */
 const ICON_MAP: Record<string, React.ComponentType> = AntdIcons as any;
@@ -114,6 +116,14 @@ export default function AdminLayout() {
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const wsRef = useRef<WebSocket | null>(null);
 
+  // ---- 多标签页状态 ----
+  const [tabs, setTabs] = useState<TabInfo[]>([
+    { key: '/', label: '仪表盘', closable: false },
+  ]);
+  const [activeTabKey, setActiveTabKey] = useState('/');
+  const isTabSwitchRef = useRef(false);
+  const prevPathForTabEffect = useRef(location.pathname);
+
   // WebSocket 连接管理
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -181,34 +191,24 @@ export default function AdminLayout() {
     }
   }, [unreadAnnouncements.length]);
 
-  // ---- KeepAlive（isCache 缓存机制） ----
+  // ---- 多标签页缓存 ----
   const outlet = useOutlet();
-  const pageCache = useRef<Map<string, React.ReactNode>>(new Map());
+  const pageCacheRef = useRef<Map<string, React.ReactNode>>(new Map());
   const prevPathRef = useRef(location.pathname);
   const prevOutletRef = useRef<React.ReactNode>(null);
 
-  // 从菜单配置中提取需要缓存的路径
-  const cachedPaths = useMemo(() => {
-    if (!myMenusData) return new Set<string>();
-    return new Set(
-      myMenusData.menus
-        .filter((m) => m.isCache && m.path)
-        .map((m) => m.path as string),
-    );
-  }, [myMenusData]);
-
-  // 在渲染前更新页面缓存：路径变化时捕获上一页的内容
-  if (prevOutletRef.current && prevPathRef.current !== location.pathname && cachedPaths.has(prevPathRef.current)) {
-    pageCache.current.set(prevPathRef.current, prevOutletRef.current);
-  }
-  // 清除不再需要的缓存（路径从缓存列表中移除时）
-  for (const path of pageCache.current.keys()) {
-    if (!cachedPaths.has(path)) {
-      pageCache.current.delete(path);
+  // 渲染阶段：路径变化时捕获上一页内容到缓存（必须在 outlet 被替换前执行）
+  if (prevPathRef.current !== location.pathname) {
+    if (prevOutletRef.current) {
+      pageCacheRef.current.set(prevPathRef.current, prevOutletRef.current);
     }
   }
   prevPathRef.current = location.pathname;
   prevOutletRef.current = outlet;
+  // 始终刷新当前页缓存
+  if (outlet) {
+    pageCacheRef.current.set(location.pathname, outlet);
+  }
 
   const sidebarItems = useMemo(() => {
     if (!myMenusData) return [];
@@ -238,6 +238,164 @@ export default function AdminLayout() {
     }
     return keys;
   }, [sidebarItems, location.pathname]);
+
+  /** 路由 → 中文名称映射（用于面包屑） */
+  const routeLabelMap: Record<string, string> = useMemo(() => {
+    const map: Record<string, string> = {
+      '/': '仪表盘',
+      '/users': '用户管理',
+      '/users/new': '新建用户',
+      '/orgs': '组织管理',
+      '/orgs/new': '新建组织',
+      '/roles': '角色管理',
+      '/roles/new': '新建角色',
+      '/menus': '菜单管理',
+      '/menus/new': '新建菜单',
+      '/audit-logs': '审计日志',
+      '/notifications': '通知中心',
+      '/settings': '系统设置',
+      '/dict': '数据字典',
+      '/files': '文件管理',
+      '/operation-logs': '操作日志',
+      '/performance': '性能监控',
+      '/announcements': '公告管理',
+      '/api-keys': 'API 密钥',
+      '/email': '邮件配置',
+      '/tasks': '定时任务',
+      '/mfa': 'MFA 设置',
+      '/approvals': '审批管理',
+      '/code-generator': '代码生成',
+      '/theme': '主题配置',
+      '/categories': '分类管理',
+      '/recycle-bin': '回收站',
+      '/articles': '文章管理',
+      '/contacts': '留言管理',
+      '/oauth': 'OAuth 配置',
+      '/profile': '个人中心',
+    };
+    // 用菜单数据覆盖（用户自定义名称优先）
+    if (myMenusData?.menus) {
+      for (const m of myMenusData.menus) {
+        if (m.path && m.type !== 'BUTTON') {
+          map[m.path] = m.name;
+        }
+      }
+    }
+    return map;
+  }, [myMenusData]);
+
+  /** 面包屑导航项 */
+  const breadcrumbItems = useMemo(() => {
+    const items: { title: string }[] = [{ title: routeLabelMap['/'] || '首页' }];
+    const path = location.pathname;
+
+    // 编辑页特殊处理: /users/some-id/edit → /users + "编辑用户"
+    const editMatch = path.match(/^\/(\w+)\/[^/]+\/edit$/);
+    if (editMatch) {
+      const parentPath = `/${editMatch[1]}`;
+      const parentName = routeLabelMap[parentPath] || parentPath;
+      items.push({ title: parentName });
+      items.push({ title: '编辑' });
+      return items;
+    }
+
+    // 新建页: /users/new
+    const newMatch = path.match(/^\/(\w+)\/new$/);
+    if (newMatch) {
+      const parentPath = `/${newMatch[1]}`;
+      const parentName = routeLabelMap[parentPath] || parentPath;
+      items.push({ title: parentName });
+      items.push({ title: '新建' });
+      return items;
+    }
+
+    // 精确匹配
+    if (path !== '/' && routeLabelMap[path]) {
+      items.push({ title: routeLabelMap[path] });
+    } else if (path !== '/') {
+      // 兜底：用最后一段路径
+      const segments = path.split('/').filter(Boolean);
+      for (let i = 0; i < segments.length; i++) {
+        const segmentPath = '/' + segments.slice(0, i + 1).join('/');
+        const label = routeLabelMap[segmentPath] || segments[i] || '';
+        items.push({ title: label });
+      }
+    }
+
+    return items;
+  }, [location.pathname, routeLabelMap]);
+
+  // ---- 标签页辅助函数 ----
+  /** 根据路由路径获取标签页显示名称 */
+  function getTabLabel(path: string, labelMap: Record<string, string>): string {
+    if (labelMap[path]) return labelMap[path];
+    const editMatch = path.match(/^\/(\w+)\/[^/]+\/edit$/);
+    if (editMatch) {
+      const parentName = labelMap[`/${editMatch[1]}`] || editMatch[1];
+      return `编辑${parentName}`;
+    }
+    const newMatch = path.match(/^\/(\w+)\/new$/);
+    if (newMatch) {
+      const parentName = labelMap[`/${newMatch[1]}`] || newMatch[1];
+      return `新建${parentName}`;
+    }
+    return path.split('/').filter(Boolean).pop() || path;
+  }
+
+  // 首次加载时，如果当前路径不是首页，添加为标签
+  useEffect(() => {
+    const path = location.pathname;
+    if (path !== '/') {
+      const label = getTabLabel(path, routeLabelMap);
+      setTabs((prev) => (prev.some((t) => t.key === path) ? prev : [...prev, { key: path, label, closable: true }]));
+    }
+    setActiveTabKey(path);
+    prevPathForTabEffect.current = path;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 路由变化时自动添加新标签（非 tab 切换产生的导航）
+  useEffect(() => {
+    const path = location.pathname;
+    if (prevPathForTabEffect.current !== path) {
+      if (!isTabSwitchRef.current) {
+        const label = getTabLabel(path, routeLabelMap);
+        setTabs((prev) => (prev.some((t) => t.key === path) ? prev : [...prev, { key: path, label, closable: path !== '/' }]));
+      }
+      isTabSwitchRef.current = false;
+      prevPathForTabEffect.current = path;
+      setActiveTabKey(path);
+    }
+  }, [location.pathname, routeLabelMap]);
+
+  // 标签页操作
+  const handleTabChange = (key: string) => {
+    if (key === location.pathname) return;
+    isTabSwitchRef.current = true;
+    setActiveTabKey(key);
+    navigate(key);
+  };
+
+  const handleTabClose = (targetKey: string) => {
+    if (targetKey === '/') return;
+
+    // 清理缓存
+    pageCacheRef.current.delete(targetKey);
+
+    const idx = tabs.findIndex((t) => t.key === targetKey);
+    const newTabs = tabs.filter((t) => t.key !== targetKey);
+    setTabs(newTabs);
+
+    // 如果关闭的是当前标签，切换到相邻标签
+    if (targetKey === activeTabKey || targetKey === location.pathname) {
+      const nextTab = newTabs[Math.min(idx, newTabs.length - 1)] || newTabs[0];
+      if (nextTab) {
+        isTabSwitchRef.current = true;
+        setActiveTabKey(nextTab.key);
+        navigate(nextTab.key);
+      }
+    }
+  };
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     if (childPaths.has(key) || key === '/') {
@@ -455,13 +613,35 @@ export default function AdminLayout() {
             background: '#f1f5f9',
           }}
         >
-          <div className="page-enter">
-            {Array.from(pageCache.current.entries()).map(([path, element]) => (
-              <div key={path} style={{ display: path === location.pathname ? 'block' : 'none' }}>
-                {element}
+          {/* 面包屑导航 */}
+          <Breadcrumb
+            items={breadcrumbItems}
+            style={{ marginBottom: 0 }}
+          />
+
+          {/* 多标签页栏 */}
+          <PageTabs
+            tabs={tabs}
+            activeKey={activeTabKey}
+            onChange={handleTabChange}
+            onClose={handleTabClose}
+          />
+
+          {/* 标签页内容（所有打开页面缓存，只显示当前激活的） */}
+          <div className="page-enter" style={{ position: 'relative' }}>
+            {tabs.map((tab) => (
+              <div
+                key={tab.key}
+                style={{
+                  display: tab.key === activeTabKey ? 'block' : 'none',
+                  minHeight: 'calc(100vh - 200px)',
+                }}
+              >
+                {tab.key === location.pathname
+                  ? outlet
+                  : pageCacheRef.current.get(tab.key)}
               </div>
             ))}
-            {!cachedPaths.has(location.pathname) && outlet}
           </div>
         </Content>
       </Layout>

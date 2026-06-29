@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Table, Button, Card, Space, Tag, Typography } from 'antd';
-import { CheckCircleOutlined } from '@ant-design/icons';
+import { Table, Button, Card, Space, Tag, Typography, Input } from 'antd';
+import { CheckCircleOutlined, SearchOutlined } from '@ant-design/icons';
 import { trpc } from '../trpc/client';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -22,6 +22,7 @@ const typeLabels: Record<string, string> = {
 
 export default function NotificationCenterPage() {
   const [page, setPage] = useState(1);
+  const [searchText, setSearchText] = useState('');
   const { data, isLoading, refetch } = trpc.notification.list.useQuery({ page, pageSize: 20 });
   const { data: unreadData } = trpc.notification.unreadCount.useQuery();
   const markAsReadMutation = trpc.notification.markAsRead.useMutation({
@@ -29,6 +30,15 @@ export default function NotificationCenterPage() {
   });
   const markAllAsReadMutation = trpc.notification.markAllAsRead.useMutation({
     onSuccess: () => refetch(),
+  }  );
+
+  const filteredItems = (data?.items || []).filter((item) => {
+    if (!searchText) return true;
+    const q = searchText.toLowerCase();
+    return (
+      (item?.title || '').toLowerCase().includes(q) ||
+      (item?.message || '').toLowerCase().includes(q)
+    );
   });
 
   const columns: ColumnsType<any> = [
@@ -86,6 +96,14 @@ export default function NotificationCenterPage() {
       }
       extra={
         <Space>
+          <Input
+            placeholder="搜索标题/内容"
+            prefix={<SearchOutlined />}
+            allowClear
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 220 }}
+          />
           <Button onClick={() => refetch()}>刷新</Button>
           <Button
             type="primary"
@@ -99,14 +117,14 @@ export default function NotificationCenterPage() {
       }
     >
       <Table
-        dataSource={data?.items}
+        dataSource={filteredItems}
         columns={columns}
         rowKey="id"
         loading={isLoading}
         pagination={{
           current: page,
           pageSize: 20,
-          total: data?.total,
+          total: filteredItems?.length,
           onChange: setPage,
           showTotal: (total) => `共 ${total} 条`,
         }}

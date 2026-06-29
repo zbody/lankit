@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
-import { Button, Modal, Select, Space, message } from 'antd';
+import { useState } from 'react';
+import { Button, Modal, Space, message } from 'antd';
 import { DeleteOutlined, TeamOutlined, BankOutlined } from '@ant-design/icons';
 import { trpc } from '../trpc/client';
+import { RolePicker, OrgPicker } from './Picker';
 
 /**
  * BatchOperations — admin toolbar that exposes bulk actions on top of an
@@ -35,12 +36,6 @@ export default function BatchOperations({ selectedIds, onCompleted }: BatchOpera
 
   const [orgOpen, setOrgOpen] = useState(false);
   const [orgId, setOrgId] = useState<string | null>(null);
-
-  const rolesQuery = trpc.role.listAll.useQuery(undefined, { enabled: assignOpen });
-  const orgsQuery = trpc.org.list.useQuery(
-    { page: 1, pageSize: 100 },
-    { enabled: orgOpen },
-  );
 
   const batchDelete = trpc.user.batchDelete.useMutation({
     onSuccess: (res) => {
@@ -87,26 +82,6 @@ export default function BatchOperations({ selectedIds, onCompleted }: BatchOpera
     selectedIds.length === 0 ? null : (
       <span style={{ color: '#1677ff' }}>已选 {selectedIds.length} 项</span>
     );
-
-  const orgOptions = useMemo(
-    () =>
-      ((orgsQuery.data?.items ?? []) as Array<{ id: string; name: string }>).map(
-        (o) => ({
-          label: o.name,
-          value: o.id,
-        }),
-      ),
-    [orgsQuery.data],
-  );
-
-  const roleOptions = useMemo(
-    () =>
-      (rolesQuery.data ?? []).map((r: { id: string; name: string; code: string }) => ({
-        label: `${r.name} (${r.code})`,
-        value: r.id,
-      })),
-    [rolesQuery.data],
-  );
 
   const handleBatchDelete = () => {
     Modal.confirm({
@@ -165,61 +140,35 @@ export default function BatchOperations({ selectedIds, onCompleted }: BatchOpera
         </div>
       )}
 
-      <Modal
-        title="批量分配角色"
+      <RolePicker
         open={assignOpen}
-        onCancel={() => {
+        title="批量分配角色"
+        multiple
+        selectedIds={assignRoleIds}
+        onSelect={(ids) => {
+          setAssignRoleIds(ids);
+          batchAssignRoles.mutateAsync({ ids: selectedIds, roleIds: ids });
+        }}
+        onClose={() => {
           setAssignOpen(false);
           setAssignRoleIds([]);
         }}
-        confirmLoading={batchAssignRoles.isLoading}
-        onOk={() =>
-          batchAssignRoles.mutateAsync({ ids: selectedIds, roleIds: assignRoleIds })
-        }
-        okText="应用"
-        cancelText="取消"
-      >
-        <div style={{ marginBottom: 8 }}>将覆盖所选用户当前的全部角色。</div>
-        <Select
-          mode="multiple"
-          style={{ width: '100%' }}
-          placeholder="选择角色"
-          loading={rolesQuery.isLoading}
-          options={roleOptions}
-          value={assignRoleIds}
-          onChange={setAssignRoleIds}
-          showSearch
-          optionFilterProp="label"
-        />
-      </Modal>
+      />
 
-      <Modal
-        title="批量调整组织"
+      <OrgPicker
         open={orgOpen}
-        onCancel={() => {
+        title="批量调整组织"
+        selectedIds={orgId ? [orgId] : []}
+        onSelect={(ids) => {
+          const newOrgId = ids[0] ?? null;
+          setOrgId(newOrgId);
+          batchAdjustOrg.mutateAsync({ ids: selectedIds, organizationId: newOrgId });
+        }}
+        onClose={() => {
           setOrgOpen(false);
           setOrgId(null);
         }}
-        confirmLoading={batchAdjustOrg.isLoading}
-        onOk={() =>
-          batchAdjustOrg.mutateAsync({ ids: selectedIds, organizationId: orgId })
-        }
-        okText="应用"
-        cancelText="取消"
-      >
-        <div style={{ marginBottom: 8 }}>选择新组织，或选择"无"来清空组织归属。</div>
-        <Select
-          allowClear
-          style={{ width: '100%' }}
-          placeholder="选择组织"
-          loading={orgsQuery.isLoading}
-          options={orgOptions}
-          value={orgId ?? undefined}
-          onChange={(v) => setOrgId(v ?? null)}
-          showSearch
-          optionFilterProp="label"
-        />
-      </Modal>
+      />
     </>
   );
 }

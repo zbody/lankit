@@ -76,6 +76,66 @@ const perfMonitor = t.middleware(async ({ ctx, next, path }) => {
   }
 });
 
+/** 操作日志中间件 - 自动记录所有业务写操作 */
+const operationLog = t.middleware(async ({ ctx, next, path }) => {
+  const startTime = Date.now();
+
+  // 只记录写操作
+  const isWrite =
+    path.includes('.create') || path.includes('.update') || path.includes('.delete') || path.includes('.batch');
+  const skipPaths = ['auth.login', 'auth.register', 'auth.me'];
+  if (!isWrite || skipPaths.includes(path)) {
+    return next();
+  }
+
+  let error: Error | null = null;
+  try {
+    const result = await next();
+    return result;
+  } catch (e) {
+    error = e instanceof Error ? e : new Error(String(e));
+    throw e;
+  } finally {
+    const duration = Date.now() - startTime;
+    void (async () => {
+      try {
+        const action = path.split('.').pop()?.toUpperCase() || 'UNKNOWN';
+        const entity = path.split('.')[0]?.toUpperCase() || 'UNKNOWN';
+
+        let userName: string | null = null;
+        if (ctx.session?.userId) {
+          const user = await ctx.prisma.user.findUnique({
+            where: { id: ctx.session.userId },
+            select: { name: true },
+          });
+          userName = user?.name || null;
+        }
+
+        const headers = ctx.headers || new Headers();
+        const ipAddress = headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+          || headers.get('x-real-ip')
+          || headers.get('host')
+          || 'unknown';
+
+        await ctx.prisma.operationLog.create({
+          data: {
+            userId: ctx.session?.userId || null,
+            userName,
+            action,
+            entity,
+            ipAddress,
+            duration,
+            success: !error,
+            errorMessage: error?.message || null,
+          },
+        });
+      } catch {
+        // 操作日志记录失败不影响主流程
+      }
+    })();
+  }
+});
+
 /** 审计日志中间件 - 自动记录所有写操作 */
 const auditLog = t.middleware(async ({ next, ctx, path }) => {
   const result = await next();
@@ -151,7 +211,7 @@ const auditLog = t.middleware(async ({ next, ctx, path }) => {
 });
 
 export const publicProcedure = t.procedure;
-export const protectedProcedure = t.procedure.use(isAuthed).use(tenant).use(perfMonitor).use(auditLog);
+export const protectedProcedure = t.procedure.use(isAuthed).use(tenant).use(perfMonitor).use(operationLog).use(auditLog);
 export const router = t.router;
 export const middleware = t.middleware;
 export { getTenantFilter };

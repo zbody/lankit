@@ -3,6 +3,7 @@ import { Table, Button, Card, Space, Popconfirm, message, Upload, Tag, Typograph
 import { PlusOutlined, DeleteOutlined, DownloadOutlined, FileOutlined } from '@ant-design/icons';
 import { trpc } from '../trpc/client';
 import type { UploadProps } from 'antd';
+import PageHeader from '../components/PageHeader';
 
 export default function FileListPage() {
   const [page, setPage] = useState(1);
@@ -79,14 +80,16 @@ export default function FileListPage() {
   ];
 
   return (
-    <Card
-      title="文件管理"
-      extra={
-        <Upload customRequest={handleUpload} showUploadList={false} accept="*">
-          <Button type="primary" icon={<PlusOutlined />} loading={uploadMutation.isLoading}>上传文件</Button>
-        </Upload>
-      }
-    >
+    <div>
+      <PageHeader
+        title="文件管理"
+        extra={
+          <Upload customRequest={handleUpload} showUploadList={false} accept="*">
+            <Button type="primary" icon={<PlusOutlined />} loading={uploadMutation.isLoading}>上传文件</Button>
+          </Upload>
+        }
+      />
+      <Card>
       <Table
         dataSource={data?.items}
         columns={columns}
@@ -97,6 +100,7 @@ export default function FileListPage() {
           onChange: setPage, showTotal: (t: number) => `共 ${t} 条`,
         }}
       />
-    </Card>
-  );
-}
+      </Card>
+    </div>
+    );
+  }

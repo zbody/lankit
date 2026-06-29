@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Card, Form, Input, Select, Button, message, Switch, Spin } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { trpc } from '../trpc/client';
+import { OrgPicker } from '../components/Picker';
 
 function buildPasswordRules(settings?: { key: string; value: string }[]): Record<string, unknown>[] {
   const rules: Record<string, unknown>[] = [{ required: true, message: '请输入密码' }];
@@ -37,7 +38,6 @@ export default function UserFormPage() {
   const [form] = Form.useForm();
 
   const { data: item, isLoading: itemLoading } = trpc.user.byId.useQuery(id ?? '', { enabled: isEdit });
-  const { data: orgList } = trpc.org.list.useQuery({ page: 1, pageSize: 100 });
   const { data: roleList } = trpc.role.listAll.useQuery();
   const { data: systemSettings } = trpc.systemSettings.getAll.useQuery();
 
@@ -106,11 +106,7 @@ export default function UserFormPage() {
           <Input placeholder="用户名称" />
         </Form.Item>
         <Form.Item name="organizationId" label="所属组织">
-          <Select
-            allowClear
-            placeholder="选择组织"
-            options={(orgList?.items ?? []).map((o) => ({ label: o.name, value: o.id }))}
-          />
+          <OrgPicker mode="treeSelect" />
         </Form.Item>
         <Form.Item name="roleIds" label="角色">
           <Select

@@ -14,7 +14,7 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export { EmptyState, type EmptyStateProps };
+export { EmptyState, LoadingSkeleton, type EmptyStateProps };
 
 function EmptyState({
   title = '暂无数据',

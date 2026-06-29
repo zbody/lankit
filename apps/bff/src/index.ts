@@ -33,11 +33,11 @@ app.use(
   }),
 );
 
-// 登录接口更严格的限流
-app.post('/trpc/auth.login', rateLimitMiddleware({ windowMs: 60000, maxRequests: 10 }));
+// 登录接口更严格的限流（用 app.use 而非 app.post，保持中间件链完整）
+app.use('/trpc/auth.login', rateLimitMiddleware({ windowMs: 60000, maxRequests: 10 }));
 
 // 注册接口更严格的限流
-app.post('/trpc/auth.register', rateLimitMiddleware({ windowMs: 60000, maxRequests: 5 }));
+app.use('/trpc/auth.register', rateLimitMiddleware({ windowMs: 60000, maxRequests: 5 }));
 
 // 确保所有响应都使用 UTF-8 编码
 app.use('/trpc/*', async (c, next) => {

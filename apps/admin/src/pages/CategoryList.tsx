@@ -1,10 +1,12 @@
 import { useState, useMemo } from 'react';
 import {
-  Table, Button, Card, Space, Popconfirm, message, Modal, Form, Input,
+  Table, Button, Card, Space, Popconfirm, message, Form, Input,
   InputNumber, Switch, TreeSelect,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { trpc } from '../trpc/client';
+import PageHeader from '../components/PageHeader';
+import FormDrawer from '../components/FormDrawer';
 
 /** 扁平列表 → 嵌套树结构 */
 function buildTree<T extends { id: string; parentId: string | null }>(items: T[]): (T & { children: T[] })[] {
@@ -94,10 +96,12 @@ export default function CategoryListPage() {
   ];
 
   return (
-    <Card
-      title="分类管理"
-      extra={<Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新建分类</Button>}
-    >
+    <div>
+      <PageHeader
+        title="分类管理"
+        extra={<Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>新建分类</Button>}
+      />
+      <Card>
       <Table
         dataSource={treeDataSource}
         columns={columns}
@@ -107,21 +111,22 @@ export default function CategoryListPage() {
         defaultExpandAllRows
         size="middle"
       />
-      <Modal
+      <FormDrawer
         title={editingId ? '编辑分类' : '新建分类'}
         open={formOpen}
-        onOk={handleSubmit}
-        onCancel={() => { setFormOpen(false); setEditingId(null); }}
+        form={form}
+        onClose={() => { setFormOpen(false); setEditingId(null); }}
+        onSubmit={handleSubmit}
+        submitting={createMutation.isPending || updateMutation.isPending}
       >
-        <Form form={form} layout="vertical">
-          <Form.Item name="name" label="名称" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="parentId" label="父分类">
-            <TreeSelect treeData={treeSelectData} allowClear placeholder="留空为顶级" />
-          </Form.Item>
-          <Form.Item name="sort" label="排序"><InputNumber min={0} style={{ width: 120 }} /></Form.Item>
-          <Form.Item name="status" label="状态" valuePropName="checked"><Switch /></Form.Item>
-        </Form>
-      </Modal>
+        <Form.Item name="name" label="名称" rules={[{ required: true }]}><Input /></Form.Item>
+        <Form.Item name="parentId" label="父分类">
+          <TreeSelect treeData={treeSelectData} allowClear placeholder="留空为顶级" />
+        </Form.Item>
+        <Form.Item name="sort" label="排序"><InputNumber min={0} style={{ width: 120 }} /></Form.Item>
+        <Form.Item name="status" label="状态" valuePropName="checked"><Switch /></Form.Item>
+      </FormDrawer>
     </Card>
+    </div>
   );
 }
