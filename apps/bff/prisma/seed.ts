@@ -35,6 +35,26 @@ async function main() {
     { name: '组织管理', code: 'OrgManagement', path: '/orgs', component: 'OrgList', icon: 'ApartmentOutlined', type: 'MENU' as const, sort: 1, parentCode: 'System' },
     { name: '角色管理', code: 'RoleManagement', path: '/roles', component: 'RoleList', icon: 'SafetyOutlined', type: 'MENU' as const, sort: 2, parentCode: 'System' },
     { name: '菜单管理', code: 'MenuManagement', path: '/menus', component: 'MenuList', icon: 'MenuOutlined', type: 'MENU' as const, sort: 3, parentCode: 'System' },
+    { name: '公告管理', code: 'AnnouncementManagement', path: '/announcements', component: 'AnnouncementList', icon: 'NotificationOutlined', type: 'MENU' as const, sort: 4, parentCode: 'System' },
+    { name: 'API 密钥', code: 'ApiKeyManagement', path: '/api-keys', component: 'ApiKeyList', icon: 'KeyOutlined', type: 'MENU' as const, sort: 5, parentCode: 'System' },
+    { name: '邮件配置', code: 'EmailConfig', path: '/email', component: 'EmailConfig', icon: 'MailOutlined', type: 'MENU' as const, sort: 6, parentCode: 'System' },
+    { name: '定时任务', code: 'TaskManagement', path: '/tasks', component: 'TaskList', icon: 'ClockCircleOutlined', type: 'MENU' as const, sort: 7, parentCode: 'System' },
+    { name: '安全设置', code: 'SecurityManagement', icon: 'SafetyCertificateOutlined', type: 'DIRECTORY' as const, sort: 3 },
+    { name: 'MFA 设置', code: 'MfaSettings', path: '/mfa', component: 'MFASettings', icon: 'LockOutlined', type: 'MENU' as const, sort: 0, parentCode: 'SecurityManagement' },
+    { name: '审批管理', code: 'ApprovalManagement', path: '/approvals', component: 'ApprovalList', icon: 'CheckCircleOutlined', type: 'MENU' as const, sort: 1, parentCode: 'SecurityManagement' },
+    { name: 'OAuth 配置', code: 'OAuthSettings', path: '/oauth', component: 'OAuthSettings', icon: 'LoginOutlined', type: 'MENU' as const, sort: 2, parentCode: 'SecurityManagement' },
+    { name: '管理', code: 'AdminManagement', icon: 'SettingOutlined', type: 'DIRECTORY' as const, sort: 10 },
+    { name: '操作日志', code: 'OperationLog', path: '/operation-logs', component: 'OperationLog', icon: 'AuditOutlined', type: 'MENU' as const, sort: 0, parentCode: 'AdminManagement' },
+    { name: '性能监控', code: 'PerformanceMonitoring', path: '/performance', component: 'PerformanceMonitoring', icon: 'BarChartOutlined', type: 'MENU' as const, sort: 1, parentCode: 'AdminManagement' },
+    { name: '审计日志', code: 'AuditLog', path: '/audit-logs', component: 'AuditLogList', icon: 'FileTextOutlined', type: 'MENU' as const, sort: 2, parentCode: 'AdminManagement' },
+    { name: '通知中心', code: 'NotificationCenter', path: '/notifications', component: 'NotificationCenter', icon: 'BellOutlined', type: 'MENU' as const, sort: 3, parentCode: 'AdminManagement' },
+    { name: '系统设置', code: 'SystemSettings', path: '/settings', component: 'SystemSettings', icon: 'SettingOutlined', type: 'MENU' as const, sort: 4, parentCode: 'AdminManagement' },
+    { name: '主题配置', code: 'ThemeConfig', path: '/theme', component: 'ThemeConfig', icon: 'BgColorsOutlined', type: 'MENU' as const, sort: 5, parentCode: 'AdminManagement' },
+    { name: '代码生成器', code: 'CodeGenerator', path: '/code-generator', component: 'CodeGenerator', icon: 'CodeOutlined', type: 'MENU' as const, sort: 6, parentCode: 'AdminManagement' },
+    { name: 'CMS 管理', code: 'CmsManagement', icon: 'FileTextOutlined', type: 'DIRECTORY' as const, sort: 20 },
+    { name: '分类管理', code: 'CategoryManagement', path: '/categories', component: 'CategoryList', icon: 'AppstoreOutlined', type: 'MENU' as const, sort: 0, parentCode: 'CmsManagement' },
+    { name: '文章管理', code: 'ArticleManagement', path: '/articles', component: 'ArticleList', icon: 'FileTextOutlined', type: 'MENU' as const, sort: 1, parentCode: 'CmsManagement' },
+    { name: '联系表单', code: 'ContactManagement', path: '/contacts', component: 'ContactList', icon: 'MessageOutlined', type: 'MENU' as const, sort: 2, parentCode: 'CmsManagement' },
     // 用户管理子菜单 - 按钮级权限
     { name: '用户列表', code: 'UserList', path: '/users', type: 'BUTTON' as const, permission: 'system:user:list', sort: 0, parentCode: 'UserManagement' },
     { name: '创建用户', code: 'UserCreate', type: 'BUTTON' as const, permission: 'system:user:create', sort: 1, parentCode: 'UserManagement' },
@@ -125,6 +145,21 @@ async function main() {
     });
   }
   console.log(`✅ 系统设置初始化完成 (${defaultSettings.length} 项)`);
+
+  // 8. 创建示例公告
+  const existingAnnouncement = await prisma.announcement.findFirst();
+  if (!existingAnnouncement) {
+    await prisma.announcement.create({
+      data: {
+        title: '欢迎使用 Lankit 管理平台',
+        content: '<p>欢迎来到 Lankit 企业级管理平台！</p><ul><li>完善的 RBAC 权限管理系统</li><li>实时通知与 WebSocket 消息推送</li><li>数据导入导出与批量操作</li><li>操作日志与性能监控</li></ul><p>如有问题请联系系统管理员。</p>',
+        level: 'INFO',
+        status: true,
+        sort: 0,
+      },
+    });
+    console.log('✅ 示例公告创建完成');
+  }
 
   console.log('🎉 数据初始化完成');
 }

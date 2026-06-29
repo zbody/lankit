@@ -56,7 +56,7 @@ export const notificationRouter = router({
 
   markAllAsRead: protectedProcedure.mutation(async ({ ctx }) => {
     await prisma.notification.updateMany({
-      where: { userId: ctx.session.userId, isRead: false },
+      where: { userId: ctx.session!.userId, isRead: false },
       data: { isRead: true },
     });
     return { success: true };
@@ -64,7 +64,7 @@ export const notificationRouter = router({
 
   unreadCount: protectedProcedure.query(async ({ ctx }) => {
     const count = await prisma.notification.count({
-      where: { userId: ctx.session.userId, isRead: false },
+      where: { userId: ctx.session!.userId, isRead: false },
     });
     return { count };
   }),

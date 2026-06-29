@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { publicProcedure, protectedProcedure, router } from '../router.js';
+import { protectedProcedure, router } from '../router.js';
 import { prisma } from '../../db/prisma.js';
 import { generateCode } from '../../utils/codegen.js';
 
@@ -18,15 +18,16 @@ const menuSchema = z.object({
 });
 
 export const menuRouter = router({
-  tree: publicProcedure.query(async () => {
+  tree: protectedProcedure.query(async () => {
     const menus = await prisma.menu.findMany({
+      where: { deletedAt: null },
       orderBy: { sort: 'asc' },
       include: { children: true },
     });
     return menus;
   }),
 
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z.object({
         page: z.number().min(1).default(1),
@@ -37,12 +38,13 @@ export const menuRouter = router({
       const skip = (input.page - 1) * input.pageSize;
       const [items, total] = await Promise.all([
         prisma.menu.findMany({
+          where: { deletedAt: null },
           skip,
           take: input.pageSize,
           orderBy: { sort: 'asc' },
           include: { parent: { select: { id: true, name: true } } },
         }),
-        prisma.menu.count(),
+        prisma.menu.count({ where: { deletedAt: null } }),
       ]);
       return {
         items: items.map((i: { id: string; name: string; code: string; parentId: string | null; path: string | null; component: string | null; icon: string | null; type: string; permission: string | null; sort: number; isVisible: boolean; isCache: boolean; createdAt: Date; updatedAt: Date }) => ({
@@ -56,9 +58,9 @@ export const menuRouter = router({
       };
     }),
 
-  byId: publicProcedure.input(z.string()).query(async ({ input }) => {
+  byId: protectedProcedure.input(z.string()).query(async ({ input }) => {
     const item = await prisma.menu.findUnique({
-      where: { id: input },
+      where: { id: input, deletedAt: null },
       include: { parent: { select: { id: true, name: true } } },
     });
     if (!item) throw new Error('菜单不存在');
@@ -89,8 +91,32 @@ export const menuRouter = router({
     }),
 
   delete: protectedProcedure.input(z.string()).mutation(async ({ input }) => {
-    const children = await prisma.menu.count({ where: { parentId: input } });
+    const children = await prisma.menu.count({ where: { parentId: input, deletedAt: null } });
     if (children > 0) throw new Error('请先删除子菜单');
+    await prisma.menu.update({ where: { id: input }, data: { deletedAt: new Date() } });
+    return { success: true };
+  }),
+
+  restore: protectedProcedure.input(z.string()).mutation(async ({ input }) => {
+    await prisma.menu.update({ where: { id: input }, data: { deletedAt: null } });
+    return { success: true };
+  }),
+
+  recycleBin: protectedProcedure.query(async () => {
+    const items = await prisma.menu.findMany({
+      where: { deletedAt: { not: null } },
+      orderBy: { deletedAt: 'desc' },
+      include: { parent: { select: { id: true, name: true } } },
+    });
+    return items.map((i: any) => ({
+      ...i,
+      createdAt: i.createdAt.toISOString(),
+      updatedAt: i.updatedAt.toISOString(),
+      deletedAt: i.deletedAt?.toISOString() ?? null,
+    }));
+  }),
+
+  forceDelete: protectedProcedure.input(z.string()).mutation(async ({ input }) => {
     await prisma.menu.delete({ where: { id: input } });
     return { success: true };
   }),
@@ -111,7 +137,7 @@ export const menuRouter = router({
   // 当前用户菜单树（含角色继承 + 直接绑定）
   myMenus: protectedProcedure.query(async ({ ctx }) => {
     const user = await prisma.user.findUnique({
-      where: { id: ctx.session.userId },
+      where: { id: ctx.session!.userId },
       include: {
         roles: {
           include: { role: { include: { menus: { select: { menuId: true } } } } },
@@ -132,7 +158,7 @@ export const menuRouter = router({
 
     const allIds = [...roleMenuIds, ...directMenuIds];
     const menus = await prisma.menu.findMany({
-      where: { id: { in: allIds } },
+      where: { id: { in: allIds }, deletedAt: null },
       orderBy: { sort: 'asc' },
     });
 
@@ -168,7 +194,7 @@ export const menuRouter = router({
 
     const allIds = new Set([...roleMenuIds, ...directMenuIds]);
     const menus = await prisma.menu.findMany({
-      where: { id: { in: [...allIds] } },
+      where: { id: { in: [...allIds] }, deletedAt: null },
       orderBy: { sort: 'asc' },
     });
 

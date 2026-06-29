@@ -8,12 +8,33 @@ export const auditLogRouter = router({
       z.object({
         page: z.number().min(1).default(1),
         pageSize: z.number().min(1).max(100).default(20),
+        action: z.string().optional(),
+        entity: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        search: z.string().optional(),
       }),
     )
     .query(async ({ input }) => {
+      const where: Record<string, unknown> = {};
+      if (input.action) where.action = input.action;
+      if (input.entity) where.entity = input.entity;
+      if (input.search) {
+        where.OR = [
+          { userName: { contains: input.search } },
+          { ipAddress: { contains: input.search } },
+        ];
+      }
+      if (input.startDate || input.endDate) {
+        const createdAt: Record<string, Date> = {};
+        if (input.startDate) createdAt.gte = new Date(input.startDate);
+        if (input.endDate) createdAt.lte = new Date(input.endDate);
+        where.createdAt = createdAt;
+      }
       const skip = (input.page - 1) * input.pageSize;
       const [items, total] = await Promise.all([
         prisma.auditLog.findMany({
+          where,
           skip,
           take: input.pageSize,
           orderBy: { createdAt: 'desc' },
@@ -31,7 +52,7 @@ export const auditLogRouter = router({
             createdAt: true,
           },
         }),
-        prisma.auditLog.count(),
+        prisma.auditLog.count({ where }),
       ]);
       return {
         items,

@@ -1,11 +1,7 @@
 import { z } from 'zod';
 import { protectedProcedure, router } from '../router.js';
 import { prisma } from '../../db/prisma.js';
-import { writeFile, mkdir } from 'node:fs/promises';
-import { join, extname } from 'node:path';
-import { randomUUID } from 'node:crypto';
-
-const UPLOAD_DIR = join(process.cwd(), 'uploads');
+import { getStorageProvider, getCurrentStorageType } from '../../utils/storage.js';
 
 export const fileRouter = router({
   upload: protectedProcedure
@@ -18,23 +14,25 @@ export const fileRouter = router({
       }),
     )
     .mutation(async ({ input, ctx }) => {
-      const ext = extname(input.name);
-      const fileName = `${randomUUID()}${ext}`;
-      const relativePath = `uploads/${fileName}`;
-      const absolutePath = join(UPLOAD_DIR, fileName);
+      const provider = getStorageProvider(getCurrentStorageType());
+      const buffer = Buffer.from(input.buffer, 'base64');
 
-      await mkdir(UPLOAD_DIR, { recursive: true });
-      await writeFile(absolutePath, Buffer.from(input.buffer, 'base64'));
+      const result = await provider.upload({
+        name: input.name,
+        type: input.type,
+        size: input.size,
+        buffer,
+      });
 
       const record = await prisma.fileRecord.create({
         data: {
           originalName: input.name,
-          fileName,
-          ext,
+          fileName: result.fileName,
+          ext: result.fileName.split('.').pop() || '',
           mimeType: input.type,
           size: input.size,
-          path: relativePath,
-          url: `/files/${fileName}`,
+          path: result.path,
+          url: result.url,
           uploadedBy: ctx.session?.userId,
         },
       });
@@ -85,7 +83,34 @@ export const fileRouter = router({
     }),
 
   delete: protectedProcedure.input(z.string()).mutation(async ({ input }) => {
+    const record = await prisma.fileRecord.findUnique({ where: { id: input } });
+    if (!record) {
+      throw new Error('文件不存在');
+    }
+
+    // 从存储中删除文件
+    const provider = getStorageProvider(getCurrentStorageType());
+    await provider.delete(record.fileName);
+
+    // 从数据库删除记录
     await prisma.fileRecord.delete({ where: { id: input } });
     return { success: true };
   }),
+
+  /** 获取文件预览URL */
+  getPreviewUrl: protectedProcedure
+    .input(z.string())
+    .query(async ({ input }) => {
+      const record = await prisma.fileRecord.findUnique({ where: { id: input } });
+      if (!record) {
+        throw new Error('文件不存在');
+      }
+
+      const provider = getStorageProvider(getCurrentStorageType());
+      return {
+        url: provider.getUrl(record.fileName),
+        mimeType: record.mimeType,
+        originalName: record.originalName,
+      };
+    }),
 });
