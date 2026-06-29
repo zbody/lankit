@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { trpc } from '../trpc/client';
 
 export default function HomePage() {
@@ -11,7 +12,10 @@ export default function HomePage() {
     <div className="min-h-screen bg-white">
       <header className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
         <span className="text-lg font-bold">Lankit</span>
-        <a href={process.env.NEXT_PUBLIC_ADMIN_URL || '//localhost:5175'} className="text-sm text-blue-600">登录</a>
+        <div className="flex items-center gap-4">
+          <Link href="/articles" className="text-sm text-gray-500 hover:text-gray-900">文章</Link>
+          <a href={process.env.NEXT_PUBLIC_ADMIN_URL || '//localhost:5175'} className="text-sm text-blue-600">登录</a>
+        </div>
       </header>
 
       <main className="px-4">

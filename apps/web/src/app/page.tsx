@@ -9,6 +9,7 @@ export default function HomePage() {
             <a href="#features" className="hover:text-gray-900 transition-colors">特性</a>
             <a href="#tech-stack" className="hover:text-gray-900 transition-colors">技术栈</a>
             <a href="#platforms" className="hover:text-gray-900 transition-colors">多端支持</a>
+            <a href="/articles" className="hover:text-gray-900 transition-colors">文章</a>
             <a
               href="https://github.com/zbody/lankit"
               target="_blank"
