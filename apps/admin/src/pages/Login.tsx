@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Form, Input, Button, message, Typography } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { Form, Input, Button, message, Typography, Modal } from 'antd';
+import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
 import { trpc } from '../trpc/client';
 import type { LoginInput } from '@platform/shared';
 
@@ -10,19 +10,48 @@ const { Title, Text } = Typography;
 export default function LoginPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [mfaVisible, setMfaVisible] = useState(false);
+  const [mfaToken, setMfaToken] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaLoading, setMfaLoading] = useState(false);
   const loginMutation = trpc.auth.login.useMutation();
+  const verifyMfaMutation = trpc.auth.verifyMfa.useMutation();
 
   const handleSubmit = async (values: LoginInput) => {
     setLoading(true);
     try {
       const result = await loginMutation.mutateAsync(values);
-      localStorage.setItem('token', result.token);
-      message.success('登录成功');
-      navigate('/');
+      if ('token' in result) {
+        localStorage.setItem('token', result.token);
+        message.success('登录成功');
+        navigate('/');
+      } else if ('mfaToken' in result) {
+        setMfaToken(result.mfaToken);
+        setMfaVisible(true);
+      }
     } catch (err) {
       message.error(err instanceof Error ? err.message : '登录失败');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleMfaVerify = async () => {
+    if (!mfaCode || mfaCode.length !== 6) {
+      message.warning('请输入 6 位验证码');
+      return;
+    }
+    setMfaLoading(true);
+    try {
+      const result = await verifyMfaMutation.mutateAsync({ mfaToken, code: mfaCode });
+      localStorage.setItem('token', result.token);
+      message.success('验证成功');
+      setMfaVisible(false);
+      navigate('/');
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '验证失败');
+    } finally {
+      setMfaLoading(false);
     }
   };
 
@@ -94,9 +123,44 @@ export default function LoginPage() {
             <Text style={styles.footerText}>
               没有账号？<Link to="/register" style={styles.link}>立即注册</Link>
             </Text>
+            <div style={{ marginTop: 8 }}>
+              <Link to="/forgot-password" style={{ ...styles.link, fontSize: 13 }}>忘记密码？</Link>
+            </div>
           </div>
         </Form>
       </div>
+
+      {/* MFA 验证弹窗 */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <SafetyOutlined style={{ color: '#6366f1' }} />
+            <span>双因素认证</span>
+          </div>
+        }
+        open={mfaVisible}
+        onOk={handleMfaVerify}
+        onCancel={() => setMfaVisible(false)}
+        okText="验证"
+        cancelText="取消"
+        confirmLoading={mfaLoading}
+        centered
+      >
+        <div style={{ padding: '16px 0' }}>
+          <Text style={{ display: 'block', marginBottom: 16, color: '#64748b' }}>
+            请输入 Authenticator App 中的 6 位验证码
+          </Text>
+          <Input
+            size="large"
+            placeholder="000000"
+            maxLength={6}
+            value={mfaCode}
+            onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+            style={{ textAlign: 'center', fontSize: 24, letterSpacing: 8, fontWeight: 600 }}
+            onPressEnter={handleMfaVerify}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

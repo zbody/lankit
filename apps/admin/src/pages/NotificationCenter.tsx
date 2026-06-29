@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Table, Button, Card, Space, Tag, Typography } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { trpc } from '../trpc/client';
@@ -20,7 +21,8 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function NotificationCenterPage() {
-  const { data, isLoading, refetch } = trpc.notification.list.useQuery({ page: 1, pageSize: 20 });
+  const [page, setPage] = useState(1);
+  const { data, isLoading, refetch } = trpc.notification.list.useQuery({ page, pageSize: 20 });
   const { data: unreadData } = trpc.notification.unreadCount.useQuery();
   const markAsReadMutation = trpc.notification.markAsRead.useMutation({
     onSuccess: () => refetch(),
@@ -89,7 +91,7 @@ export default function NotificationCenterPage() {
             type="primary"
             icon={<CheckCircleOutlined />}
             onClick={() => markAllAsReadMutation.mutate()}
-            loading={markAllAsReadMutation.isLoading}
+            loading={markAllAsReadMutation.isPending}
           >
             全部已读
           </Button>
@@ -102,8 +104,10 @@ export default function NotificationCenterPage() {
         rowKey="id"
         loading={isLoading}
         pagination={{
-          total: data?.total,
+          current: page,
           pageSize: 20,
+          total: data?.total,
+          onChange: setPage,
           showTotal: (total) => `共 ${total} 条`,
         }}
       />

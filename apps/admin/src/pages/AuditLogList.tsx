@@ -14,15 +14,26 @@ const actionColors: Record<string, string> = {
 };
 
 export default function AuditLogListPage() {
-  const { data, isLoading, refetch } = trpc.auditLogs.list.useQuery({ page: 1, pageSize: 20 });
-  const [isDetailVisible, setIsDetailVisible] = useState(false);
-  const [currentLog, setCurrentLog] = useState<any>(null);
+  const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     action: '' as string,
     entity: '' as string,
     dateRange: null as any,
     search: '' as string,
   });
+
+  const queryParams = {
+    page,
+    pageSize: 20,
+    ...(filters.action && { action: filters.action }),
+    ...(filters.entity && { entity: filters.entity }),
+    ...(filters.dateRange?.[0] && { startDate: filters.dateRange[0].toISOString() }),
+    ...(filters.dateRange?.[1] && { endDate: filters.dateRange[1].toISOString() }),
+    ...(filters.search && { search: filters.search }),
+  };
+  const { data, isLoading, refetch } = trpc.auditLogs.list.useQuery(queryParams);
+  const [isDetailVisible, setIsDetailVisible] = useState(false);
+  const [currentLog, setCurrentLog] = useState<any>(null);
 
   const columns: ColumnsType<any> = [
     {
@@ -60,7 +71,7 @@ export default function AuditLogListPage() {
     <Card
       title="审计日志"
       extra={
-        <Button type="primary" icon={<SearchOutlined />} onClick={() => refetch()}>
+        <Button type="primary" icon={<SearchOutlined />} onClick={() => { setPage(1); refetch(); }}>
           刷新
         </Button>
       }
@@ -100,8 +111,10 @@ export default function AuditLogListPage() {
         rowKey="id"
         loading={isLoading}
         pagination={{
-          total: data?.total,
+          current: page,
           pageSize: 20,
+          total: data?.total,
+          onChange: setPage,
           showTotal: (total) => `共 ${total} 条`,
         }}
       />

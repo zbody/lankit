@@ -1,0 +1,224 @@
+import { useMemo, useState } from 'react';
+import { Button, Modal, Select, Space, message } from 'antd';
+import { DeleteOutlined, TeamOutlined, BankOutlined } from '@ant-design/icons';
+import { trpc } from '../trpc/client';
+
+/**
+ * BatchOperations — admin toolbar that exposes bulk actions on top of an
+ * antd `Table` whose rows are `User` records.
+ *
+ * Designed to be rendered directly above the Table in `UserList`. The owner
+ * controls selection state and passes the currently-selected user ids plus a
+ * `clearSelection` callback. When the selection is empty the toolbar hides
+ * itself, so it never competes for layout when nothing is selected.
+ *
+ * Three actions, mirroring the three new tRPC procedures added in
+ * `apps/bff/src/trpc/routers/user.ts`:
+ *   - 批量删除      -> batchDelete (soft delete, recycle-bin recoverable)
+ *   - 批量分配角色  -> batchAssignRoles (replaces the user's entire role set)
+ *   - 批量调整组织  -> batchAdjustOrganization (organizationId: string | null)
+ *
+ * Visual conventions match the rest of admin pages (antd Space + Button,
+ * `message.success` / `message.error` for feedback, `Modal.confirm` for the
+ * destructive delete action).
+ */
+export interface BatchOperationsProps {
+  selectedIds: string[];
+  onCompleted: () => void;
+}
+
+export default function BatchOperations({ selectedIds, onCompleted }: BatchOperationsProps) {
+  const utils = trpc.useUtils();
+
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignRoleIds, setAssignRoleIds] = useState<string[]>([]);
+
+  const [orgOpen, setOrgOpen] = useState(false);
+  const [orgId, setOrgId] = useState<string | null>(null);
+
+  const rolesQuery = trpc.role.listAll.useQuery(undefined, { enabled: assignOpen });
+  const orgsQuery = trpc.org.list.useQuery(
+    { page: 1, pageSize: 100 },
+    { enabled: orgOpen },
+  );
+
+  const batchDelete = trpc.user.batchDelete.useMutation({
+    onSuccess: (res) => {
+      const m = res.missing.length;
+      message.success(
+        m > 0 ? `已删除 ${res.affected} 个用户，${m} 个不存在或已删除` : `已删除 ${res.affected} 个用户`,
+      );
+      utils.user.list.invalidate();
+      onCompleted();
+    },
+    onError: (err) => message.error(err.message),
+  });
+
+  const batchAssignRoles = trpc.user.batchAssignRoles.useMutation({
+    onSuccess: (res) => {
+      const m = res.missing.length;
+      message.success(
+        m > 0 ? `已为 ${res.affected} 个用户更新角色，${m} 个不存在或已删除` : `已为 ${res.affected} 个用户更新角色`,
+      );
+      utils.user.list.invalidate();
+      setAssignOpen(false);
+      setAssignRoleIds([]);
+      onCompleted();
+    },
+    onError: (err) => message.error(err.message),
+  });
+
+  const batchAdjustOrg = trpc.user.batchAdjustOrganization.useMutation({
+    onSuccess: (res) => {
+      const m = res.missing.length;
+      message.success(
+        m > 0 ? `已调整 ${res.affected} 个用户的组织，${m} 个不存在或已删除` : `已调整 ${res.affected} 个用户的组织`,
+      );
+      utils.user.list.invalidate();
+      setOrgOpen(false);
+      setOrgId(null);
+      onCompleted();
+    },
+    onError: (err) => message.error(err.message),
+  });
+
+  const summary =
+    selectedIds.length === 0 ? null : (
+      <span style={{ color: '#1677ff' }}>已选 {selectedIds.length} 项</span>
+    );
+
+  const orgOptions = useMemo(
+    () =>
+      ((orgsQuery.data?.items ?? []) as Array<{ id: string; name: string }>).map(
+        (o) => ({
+          label: o.name,
+          value: o.id,
+        }),
+      ),
+    [orgsQuery.data],
+  );
+
+  const roleOptions = useMemo(
+    () =>
+      (rolesQuery.data ?? []).map((r: { id: string; name: string; code: string }) => ({
+        label: `${r.name} (${r.code})`,
+        value: r.id,
+      })),
+    [rolesQuery.data],
+  );
+
+  const handleBatchDelete = () => {
+    Modal.confirm({
+      title: '确认批量删除',
+      content: `将软删除选中的 ${selectedIds.length} 个用户，可在回收站恢复。是否继续？`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => batchDelete.mutateAsync({ ids: selectedIds }),
+    });
+  };
+
+  return (
+    <>
+      {summary && (
+        <div
+          style={{
+            padding: '8px 12px',
+            marginBottom: 12,
+            background: '#f0f5ff',
+            border: '1px solid #adc6ff',
+            borderRadius: 4,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          {summary}
+          <Space>
+            <Button
+              icon={<DeleteOutlined />}
+              danger
+              loading={batchDelete.isLoading}
+              onClick={handleBatchDelete}
+            >
+              批量删除
+            </Button>
+            <Button
+              icon={<TeamOutlined />}
+              loading={batchAssignRoles.isLoading}
+              onClick={() => setAssignOpen(true)}
+            >
+              批量分配角色
+            </Button>
+            <Button
+              icon={<BankOutlined />}
+              loading={batchAdjustOrg.isLoading}
+              onClick={() => setOrgOpen(true)}
+            >
+              批量调整组织
+            </Button>
+            <Button type="link" onClick={onCompleted}>
+              取消选择
+            </Button>
+          </Space>
+        </div>
+      )}
+
+      <Modal
+        title="批量分配角色"
+        open={assignOpen}
+        onCancel={() => {
+          setAssignOpen(false);
+          setAssignRoleIds([]);
+        }}
+        confirmLoading={batchAssignRoles.isLoading}
+        onOk={() =>
+          batchAssignRoles.mutateAsync({ ids: selectedIds, roleIds: assignRoleIds })
+        }
+        okText="应用"
+        cancelText="取消"
+      >
+        <div style={{ marginBottom: 8 }}>将覆盖所选用户当前的全部角色。</div>
+        <Select
+          mode="multiple"
+          style={{ width: '100%' }}
+          placeholder="选择角色"
+          loading={rolesQuery.isLoading}
+          options={roleOptions}
+          value={assignRoleIds}
+          onChange={setAssignRoleIds}
+          showSearch
+          optionFilterProp="label"
+        />
+      </Modal>
+
+      <Modal
+        title="批量调整组织"
+        open={orgOpen}
+        onCancel={() => {
+          setOrgOpen(false);
+          setOrgId(null);
+        }}
+        confirmLoading={batchAdjustOrg.isLoading}
+        onOk={() =>
+          batchAdjustOrg.mutateAsync({ ids: selectedIds, organizationId: orgId })
+        }
+        okText="应用"
+        cancelText="取消"
+      >
+        <div style={{ marginBottom: 8 }}>选择新组织，或选择"无"来清空组织归属。</div>
+        <Select
+          allowClear
+          style={{ width: '100%' }}
+          placeholder="选择组织"
+          loading={orgsQuery.isLoading}
+          options={orgOptions}
+          value={orgId ?? undefined}
+          onChange={(v) => setOrgId(v ?? null)}
+          showSearch
+          optionFilterProp="label"
+        />
+      </Modal>
+    </>
+  );
+}

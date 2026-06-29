@@ -1,5 +1,5 @@
 import { useNavigate, useLocation, useOutlet } from 'react-router-dom';
-import { Layout, Menu, Button, Dropdown, Space, Spin } from 'antd';
+import { Layout, Menu, Button, Dropdown, Space, Spin, Badge } from 'antd';
 import {
   DashboardOutlined,
   MenuOutlined,
@@ -8,13 +8,14 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   BellOutlined,
-  FileTextOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import * as AntdIcons from '@ant-design/icons';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { trpc } from '../trpc/client';
 import type { MenuProps } from 'antd';
+import AnnouncementModal from '../components/AnnouncementModal';
 
 /** 图标名 → React 组件映射（动态从 @ant-design/icons 获取） */
 const ICON_MAP: Record<string, React.ComponentType> = AntdIcons as any;
@@ -105,6 +106,56 @@ export default function AdminLayout() {
   const { logout, user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [announcementOpen, setAnnouncementOpen] = useState(false);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const wsRef = useRef<WebSocket | null>(null);
+
+  // WebSocket 连接管理
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    const wsUrl = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:3003/ws?token=${token}`;
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      console.log('[WebSocket] 连接成功');
+      setWsConnected(true);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'notification') {
+          // 收到新通知，刷新未读计数
+          trpc.notification.unreadCount.useQuery();
+        }
+      } catch (err) {
+        console.error('[WebSocket] 消息解析失败:', err);
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('[WebSocket] 连接关闭');
+      setWsConnected(false);
+      // 3秒后重连
+      setTimeout(() => {
+        if (localStorage.getItem('token')) {
+          console.log('[WebSocket] 尝试重连...');
+        }
+      }, 3000);
+    };
+
+    ws.onerror = (error) => {
+      console.error('[WebSocket] 错误:', error);
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
 
   // 获取当前用户的菜单
   const { data: myMenusData, isLoading: menusLoading } = trpc.menu.myMenus.useQuery();
@@ -112,6 +163,20 @@ export default function AdminLayout() {
   const { data: unreadData } = trpc.notification.unreadCount.useQuery();
   // 获取最新5条通知（用于下拉面板）
   const { data: recentNotifs } = trpc.notification.list.useQuery({ page: 1, pageSize: 5 });
+  // 获取已发布的公告
+  const { data: announcements } = trpc.announcement.published.useQuery();
+  // 未读公告（排除已读的）
+  const unreadAnnouncements = useMemo(() => {
+    if (!announcements) return [];
+    return announcements.filter((a: { id: string }) => !readIds.has(a.id));
+  }, [announcements, readIds]);
+
+  // 有未读公告时自动弹窗
+  useEffect(() => {
+    if (unreadAnnouncements.length > 0) {
+      setAnnouncementOpen(true);
+    }
+  }, [unreadAnnouncements.length]);
 
   // ---- KeepAlive（isCache 缓存机制） ----
   const outlet = useOutlet();
@@ -147,35 +212,9 @@ export default function AdminLayout() {
     return buildSidebarMenus(myMenusData.menus);
   }, [myMenusData]);
 
-  // 添加管理菜单（审计日志、通知中心、系统设置）
-  const adminMenuItems = useMemo(() => {
-    const items: MenuProps['items'] = [];
-    // 检查是否有 admin 角色
-    const isAdmin = user?.roles?.some((r: { code: string }) => r.code === 'admin');
-    if (isAdmin) {
-      items.push({ key: '/audit-logs', icon: <FileTextOutlined />, label: '审计日志' });
-      items.push({ key: '/notifications', icon: <BellOutlined />, label: '通知中心' });
-      items.push({ key: '/settings', icon: <SettingOutlined />, label: '系统设置' });
-    }
-    return items;
-  }, [user]);
-
-  const allSidebarItems = useMemo(() => {
-    const items: MenuProps['items'] = [...(sidebarItems ?? [])];
-    if (adminMenuItems.length > 0) {
-      items.push({
-        key: 'admin',
-        icon: <SettingOutlined />,
-        label: '管理',
-        children: adminMenuItems,
-      });
-    }
-    return items;
-  }, [sidebarItems, adminMenuItems]);
-
   const childPaths = useMemo(() => {
     const paths = new Set<string>();
-    for (const item of allSidebarItems ?? []) {
+    for (const item of sidebarItems ?? []) {
       const sub = item as typeof item & { children?: { key: string }[] };
       if (sub?.children) {
         for (const c of sub.children) {
@@ -184,26 +223,33 @@ export default function AdminLayout() {
       }
     }
     return paths;
-  }, [allSidebarItems]);
+  }, [sidebarItems]);
 
   const defaultOpenKeys = useMemo(() => {
     const keys: string[] = [];
-    for (const item of allSidebarItems ?? []) {
+    for (const item of sidebarItems ?? []) {
       const sub = item as typeof item & { children?: { key: string }[] };
       if (sub?.children?.some((c) => c && 'key' in c && c.key === location.pathname)) {
         keys.push(String(sub.key));
       }
     }
     return keys;
-  }, [allSidebarItems, location.pathname]);
+  }, [sidebarItems, location.pathname]);
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    if (childPaths.has(key) || key === '/' || key === 'admin') {
+    if (childPaths.has(key) || key === '/') {
       navigate(key);
     }
   };
 
   const userMenuItems: MenuProps['items'] = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: '个人中心',
+      onClick: () => navigate('/profile'),
+    },
+    { type: 'divider' },
     {
       key: 'logout',
       icon: <LogoutOutlined />,
@@ -286,7 +332,7 @@ export default function AdminLayout() {
             mode="inline"
             selectedKeys={[location.pathname]}
             defaultOpenKeys={defaultOpenKeys}
-            items={allSidebarItems}
+            items={sidebarItems}
             onClick={handleMenuClick}
             style={{
               background: 'transparent',
@@ -362,26 +408,14 @@ export default function AdminLayout() {
                 (e.currentTarget as HTMLElement).style.background = 'transparent';
               }}
             >
-              <BellOutlined style={{ color: '#94a3b8', fontSize: 16 }} />
-              {unreadData && unreadData.count > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: -2,
-                    right: -2,
-                    width: 16,
-                    height: 16,
-                    borderRadius: '50%',
-                    background: '#ef4444',
-                    color: '#fff',
-                    fontSize: 10,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {unreadData.count}
-                </span>
+              <Badge count={unreadData?.count || 0} overflowCount={99}>
+                <BellOutlined style={{ color: '#94a3b8', fontSize: 16 }} />
+              </Badge>
+              {wsConnected && (
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e' }} />
+              )}
+              {!wsConnected && (
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444' }} />
               )}
             </Space>
           </Dropdown>
@@ -439,6 +473,18 @@ export default function AdminLayout() {
           </div>
         </Content>
       </Layout>
+      <AnnouncementModal
+        announcements={unreadAnnouncements}
+        open={announcementOpen}
+        onClose={() => {
+          setAnnouncementOpen(false);
+          setReadIds((prev) => {
+            const next = new Set(prev);
+            for (const a of unreadAnnouncements) next.add(a.id);
+            return next;
+          });
+        }}
+      />
     </Layout>
   );
 }

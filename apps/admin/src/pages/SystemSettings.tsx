@@ -45,9 +45,16 @@ export default function SystemSettingsPage() {
     updateMutation.mutate({ key, value });
   };
 
+  const resetMutation = trpc.systemSettings.resetToDefaults.useMutation({
+    onSuccess: () => {
+      message.success('已恢复默认设置');
+      refetch();
+    },
+    onError: (err) => message.error(err.message),
+  });
+
   const handleReset = () => {
-    // TODO: 调用 resetToDefaults
-    message.info('重置功能待实现');
+    resetMutation.mutate();
   };
 
   if (isLoading) return <div style={{ padding: 48, textAlign: 'center' }}>加载中...</div>;
