@@ -17,6 +17,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7.4-alpine
+    container_name: platform-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   bff:
     build:
       context: ..
@@ -29,9 +43,13 @@ services:
       NODE_ENV: production
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform_dev}@postgres:5432/${POSTGRES_DB:-platform}
+      REDIS_URL: redis://redis:6379/0
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   admin:
@@ -45,5 +63,51 @@ services:
     depends_on:
       - bff
 
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    container_name: platform-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3001}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_TRPC_URL: ${NEXT_PUBLIC_TRPC_URL:-http://localhost:3000/trpc}
+    depends_on:
+      - bff
+
+  h5:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.h5
+    container_name: platform-h5
+    restart: unless-stopped
+    ports:
+      - "${H5_PORT:-3002}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_TRPC_URL: ${NEXT_PUBLIC_TRPC_URL:-http://localhost:3000/trpc}
+    depends_on:
+      - bff
+
+  mobile:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.mobile
+    container_name: platform-mobile
+    restart: unless-stopped
+    ports:
+      - "${MOBILE_PORT:-19000}:19000"
+      - "${MOBILE_PORT_2:-19001}:19001"
+    environment:
+      NODE_ENV: production
+      EXPO_PUBLIC_TRPC_URL: ${EXPO_PUBLIC_TRPC_URL:-http://localhost:3000/trpc}
+    depends_on:
+      - bff
+
 volumes:
   postgres_data:
+  redis_data:

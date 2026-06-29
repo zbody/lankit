@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "active_work_id": "feature-roadmap-56ed417b",
+  "works": {
+    "feature-roadmap-56ed417b": {
+      "work_id": "feature-roadmap-56ed417b",
+      "active_plan": "D:\\系统开发\\blank\\.omo\\plans\\feature-roadmap.md",
+      "plan_name": "feature-roadmap",
+      "status": "active",
+      "started_at": "2026-06-27T07:14:13.814Z",
+      "updated_at": "2026-06-27T12:16:26.729Z",
+      "session_ids": [
+        "opencode:ses_10349a961ffeIvyOU3e2VKHIxX",
+        "opencode:ses_0f7b1add2ffesdX0fope2ABjIW",
+        "opencode:ses_0f7b19ec2ffeO2L3fZ1r8qHvsS",
+        "opencode:ses_0f7b19089ffe5qEGy1XdGTq56L",
+        "opencode:ses_0f7b1837affedfRU4z200Ui6rq",
+        "opencode:ses_0f6fd84feffeYJ5wS9yphqmVg0"
+      ],
+      "session_origins": {
+        "opencode:ses_10349a961ffeIvyOU3e2VKHIxX": "direct",
+        "opencode:ses_0f7b1add2ffesdX0fope2ABjIW": "appended",
+        "opencode:ses_0f7b19ec2ffeO2L3fZ1r8qHvsS": "appended",
+        "opencode:ses_0f7b19089ffe5qEGy1XdGTq56L": "appended",
+        "opencode:ses_0f7b1837affedfRU4z200Ui6rq": "appended",
+        "opencode:ses_0f6fd84feffeYJ5wS9yphqmVg0": "appended"
+      },
+      "agent": "atlas",
+      "task_sessions": {}
+    }
+  },
+  "active_plan": "D:\\系统开发\\blank\\.omo\\plans\\feature-roadmap.md",
+  "started_at": "2026-06-27T07:14:13.814Z",
+  "status": "active",
+  "updated_at": "2026-06-27T12:16:26.729Z",
+  "session_ids": [
+    "opencode:ses_10349a961ffeIvyOU3e2VKHIxX",
+    "opencode:ses_0f7b1add2ffesdX0fope2ABjIW",
+    "opencode:ses_0f7b19ec2ffeO2L3fZ1r8qHvsS",
+    "opencode:ses_0f7b19089ffe5qEGy1XdGTq56L",
+    "opencode:ses_0f7b1837affedfRU4z200Ui6rq",
+    "opencode:ses_0f6fd84feffeYJ5wS9yphqmVg0"
+  ],
+  "session_origins": {
+    "opencode:ses_10349a961ffeIvyOU3e2VKHIxX": "direct",
+    "opencode:ses_0f7b1add2ffesdX0fope2ABjIW": "appended",
+    "opencode:ses_0f7b19ec2ffeO2L3fZ1r8qHvsS": "appended",
+    "opencode:ses_0f7b19089ffe5qEGy1XdGTq56L": "appended",
+    "opencode:ses_0f7b1837affedfRU4z200Ui6rq": "appended",
+    "opencode:ses_0f6fd84feffeYJ5wS9yphqmVg0": "appended"
+  },
+  "plan_name": "feature-roadmap",
+  "task_sessions": {},
+  "agent": "atlas"
+}

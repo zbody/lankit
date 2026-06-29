@@ -1,0 +1,26 @@
+FROM node:20-alpine AS build
+RUN corepack enable && corepack prepare pnpm@9 --activate
+WORKDIR /app
+
+# 依赖缓存层
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml .npmrc ./
+COPY apps/mobile/package.json ./apps/mobile/
+COPY packages/config/package.json ./packages/config/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN pnpm install --frozen-lockfile
+
+# 构建 shared
+COPY packages/shared/ ./packages/shared/
+RUN pnpm --filter @platform/shared exec tsc
+
+# 构建 mobile
+COPY apps/mobile/ ./apps/mobile/
+RUN pnpm --filter @platform/mobile build
+
+# 运行阶段
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=build /app/apps/mobile/dist ./dist
+EXPOSE 19000
+CMD ["node", "./dist/index.js"]

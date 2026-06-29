@@ -1,0 +1,56 @@
+# Feature Roadmap ！ Findings Log
+
+Per-task entries appended below. Format per entry:
+`
+[YYYY-MM-DD HH:MM] <Task name>
+  Scene:    <one-line: where the work happened>
+  Findings: <bullet list of grounded facts>
+  Outcome:  <deliverables produced>
+  Sources:  <files / lines cited>
+`
+
+---
+
+[2026-06-27 21:30] Batch operations feature (Phase 1) ！ initial grounding
+  Scene:    apps/bff/src/trpc/routers (server), apps/admin/src/{components,pages} (UI),
+            .omo/notepads/feature-roadmap/notes.txt (this file).
+  Findings:
+    - The brief referenced apps/admin/src/components/UserManagement.tsx:1-50 and
+      apps/bff/src/routes/batch.ts. NEITHER file exists. components/ contains only
+      ErrorBoundary.tsx; the BFF has NO routes/ directory.
+    - The admin user-management page is apps/admin/src/pages/UserList.tsx.
+      It uses antd Table + tRPC (trpc.user.list, trpc.user.delete, etc.) with
+      the same tRPC client every other page uses ！ that is the real pattern to follow.
+    - The BFF exposes RBAC via tRPC routers under apps/bff/src/trpc/routers/.
+      User APIs (create / list / byId / update / delete / restore / recycleBin /
+      forceDelete / resetPassword) live in apps/bff/src/trpc/routers/user.ts;
+      roles in role.ts.
+    - Soft-delete foundation (inherited from Task #2 / recycle bin) is already in
+      place: prisma.user.update({ where: { id }, data: { deletedAt: new Date() } }).
+      Same pattern on Role and Organization. The audit-log middleware in
+      router.ts (lines 14-79) auto-records any mutation whose path includes
+      .create / .update / .delete.
+    - Join table for users <-> roles is UserRole with @@unique([userId, roleId]).
+      Replacements MUST use deleteMany then re-create per id (mirroring the
+      single-user role-bind pattern already in user.ts:update).
+    - No test runner (vitest / jest) is configured for the BFF or the admin app.
+      Adding one would require dev-deps. Forbidden by the task constraints.
+      Verified: apps/bff/package.json has no 'test' script and no test-framework
+      dev-dep; apps/admin/package.json likewise.
+  Outcome:
+    - Appended this finding before implementing, so all subsequent decisions are
+      traceable instead of 'we followed a file that did not exist'.
+    - Decision: extend the existing user.ts router (NOT create routes/batch.ts);
+      add BatchOperations.tsx to apps/admin/src/components/ (real UI building
+      block); wire it into UserList.tsx (real admin target).
+    - Tests will be a runnable tsx script that exercises the new procedures against
+      the real Prisma client ！ uses already-present dev-deps (prisma + tsx); no new
+      package installs.
+  Sources:
+    - apps/admin/src/pages/UserList.tsx            (lines 1-94)
+    - apps/bff/src/trpc/routers/user.ts            (lines 1-206)
+    - apps/bff/src/trpc/routers/role.ts            (lines 1-136)
+    - apps/bff/src/trpc/router.ts                  (lines 1-84 ！ audit middleware)
+    - apps/bff/prisma/schema.prisma                (User, UserRole, Role models)
+    - apps/bff/package.json + apps/admin/package.json (no test runner configured)
+

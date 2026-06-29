@@ -203,21 +203,23 @@ Wave 5: Admin pages - Enhanced Dashboard + integration (4 tasks, parallel)
 
 ### Wave 5: 集成与验证 (并行 3 任务)
 
-- [ ] 5.1 端到端集成测试 - 审计日志链路
+- [x] 5.1 端到端集成测试 - 审计日志链路
   What to do / Must NOT do: 验证完整链路：用户操作 → 中间件捕获 → 审计日志入库 → 管理页面展示。必须 NOT 编写自动化测试代码。
   Parallelization: Wave 5 | Blocked by: Wave 3, Wave 4 | Blocks: 无
   References: 全部相关文件
   Acceptance criteria: 创建/更新/删除用户后，审计日志页面能查到记录
   QA scenarios: 1) 创建用户 → 审计日志出现 2) 更新角色 → 审计日志出现 old/new values 3) 删除菜单 → 审计日志出现
   Commit: Y | test(integration): verify audit log end-to-end
+  Result: ✅ 所有场景通过
 
-- [ ] 5.2 端到端集成测试 - 通知链路
+- [x] 5.2 端到端集成测试 - 通知链路
   What to do / Must NOT do: 验证通知创建、标记已读、未读计数完整链路。必须 NOT 添加邮件通知。
   Parallelization: Wave 5 | Blocked by: Wave 3, Wave 4 | Blocks: 无
   References: 全部相关文件
   Acceptance criteria: 通知 CRUD 正常，未读计数准确
   QA scenarios: 1) 创建通知 → 列表显示 2) 标记已读 → 列表更新 3) 未读计数正确
   Commit: Y | test(integration): verify notification end-to-end
+  Result: ✅ 所有场景通过
 
 - [x] 5.3 类型检查 + 构建验证
   What to do / Must NOT do: 运行 pnpm typecheck 和 pnpm build，确保所有新代码编译通过。必须 NOT 修改现有代码的行为。
