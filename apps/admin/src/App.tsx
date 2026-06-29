@@ -3,7 +3,10 @@ import { useAuth } from './hooks/useAuth';
 import AdminLayout from './layouts/AdminLayout';
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
+import ForgotPasswordPage from './pages/ForgotPassword';
+import ResetPasswordPage from './pages/ResetPassword';
 import DashboardPage from './pages/Dashboard';
+import ProfilePage from './pages/Profile';
 import UserListPage from './pages/UserList';
 import UserFormPage from './pages/UserForm';
 import OrgListPage from './pages/OrgList';
@@ -17,6 +20,21 @@ import NotificationCenterPage from './pages/NotificationCenter';
 import SystemSettingsPage from './pages/SystemSettings';
 import DictTypeListPage from './pages/DictTypeList';
 import FileListPage from './pages/FileList';
+import OperationLogPage from './pages/OperationLog';
+import PerformanceMonitoringPage from './pages/PerformanceMonitoring';
+import AnnouncementListPage from './pages/AnnouncementList';
+import ApiKeyListPage from './pages/ApiKeyList';
+import EmailConfigPage from './pages/EmailConfig';
+import TaskListPage from './pages/TaskList';
+import MFASettingsPage from './pages/MFASettings';
+import ApprovalListPage from './pages/ApprovalList';
+import CodeGeneratorPage from './pages/CodeGenerator';
+import ThemeConfigPage from './pages/ThemeConfig';
+import CategoryListPage from './pages/CategoryList';
+import RecycleBinPage from './pages/RecycleBin';
+import ArticleListPage from './pages/ArticleList';
+import ContactListPage from './pages/ContactList';
+import OAuthSettingsPage from './pages/OAuthSettings';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token');
@@ -34,6 +52,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route
         path="/"
         element={
@@ -60,6 +80,22 @@ export default function App() {
         <Route path="settings" element={<SystemSettingsPage />} />
         <Route path="dict" element={<DictTypeListPage />} />
         <Route path="files" element={<FileListPage />} />
+        <Route path="operation-logs" element={<OperationLogPage />} />
+        <Route path="performance" element={<PerformanceMonitoringPage />} />
+        <Route path="announcements" element={<AnnouncementListPage />} />
+        <Route path="api-keys" element={<ApiKeyListPage />} />
+        <Route path="email" element={<EmailConfigPage />} />
+        <Route path="tasks" element={<TaskListPage />} />
+        <Route path="mfa" element={<MFASettingsPage />} />
+        <Route path="approvals" element={<ApprovalListPage />} />
+        <Route path="code-generator" element={<CodeGeneratorPage />} />
+        <Route path="theme" element={<ThemeConfigPage />} />
+        <Route path="categories" element={<CategoryListPage />} />
+        <Route path="recycle-bin" element={<RecycleBinPage />} />
+        <Route path="articles" element={<ArticleListPage />} />
+        <Route path="contacts" element={<ContactListPage />} />
+        <Route path="oauth" element={<OAuthSettingsPage />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
     </Routes>
   );
