@@ -30,6 +30,7 @@ export default function UserListPage() {
     onSuccess: () => {
       message.success('删除成功');
       utils.user.list.invalidate();
+      utils.user.recycleBin.invalidate();
     },
     onError: (err) => message.error(err.message),
   });

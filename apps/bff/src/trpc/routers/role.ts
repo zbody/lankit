@@ -94,6 +94,8 @@ export const roleRouter = router({
   delete: protectedProcedure.input(z.string()).mutation(async ({ input }) => {
     const role = await prisma.role.findUnique({ where: { id: input } });
     if (role?.isSystem) throw new Error('系统角色不可删除');
+    const userCount = await prisma.userRole.count({ where: { roleId: input } });
+    if (userCount > 0) throw new Error('该角色下存在用户，无法删除');
     await prisma.role.update({ where: { id: input }, data: { deletedAt: new Date() } });
     return { success: true };
   }),

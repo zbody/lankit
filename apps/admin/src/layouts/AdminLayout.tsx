@@ -281,47 +281,55 @@ export default function AdminLayout() {
           overflow: 'auto',
         }}
       >
-        {/* Logo区域 */}
+        {/* Logo区域 + 折叠按钮 */}
         <div
           style={{
             height: 64,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
+            justifyContent: 'space-between',
+            padding: collapsed ? '0 12px' : '0 16px',
             borderBottom: '1px solid rgba(255,255,255,0.06)',
           }}
         >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 16,
-              flexShrink: 0,
-            }}
-          >
-            P
-          </div>
-          {!collapsed && (
-            <span
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
               style={{
-                color: '#ffffff',
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
                 fontWeight: 700,
-                fontSize: 18,
-                letterSpacing: '0.02em',
-                whiteSpace: 'nowrap',
+                fontSize: 16,
+                flexShrink: 0,
               }}
             >
-              Lankit
-            </span>
-          )}
+              P
+            </div>
+            {!collapsed && (
+              <span
+                style={{
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: 18,
+                  letterSpacing: '0.02em',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Lankit
+              </span>
+            )}
+          </div>
+          <Button
+            type="text"
+            style={{ color: '#94a3b8', fontSize: 16 }}
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+          />
         </div>
 
         {/* 导航菜单 */}
@@ -345,26 +353,7 @@ export default function AdminLayout() {
           />
         )}
 
-        {/* 底部折叠按钮 */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-            display: 'flex',
-            justifyContent: 'center',
-            padding: '12px 0',
-          }}
-        >
-          <Button
-            type="text"
-            style={{ color: '#94a3b8', fontSize: 16 }}
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-          />
-        </div>
+
       </Sider>
 
       {/* 右侧区域 */}

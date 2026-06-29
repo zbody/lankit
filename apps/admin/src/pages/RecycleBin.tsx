@@ -15,21 +15,22 @@ type ModuleKey = (typeof MODULES)[number]['key'];
 /** 各模块后台接口映射 */
 export default function RecycleBinPage() {
   const [activeTab, setActiveTab] = useState<ModuleKey>('org');
+  const utils = trpc.useUtils();
 
   const orgRecycle = trpc.org.recycleBin.useQuery();
-  const orgRestore = trpc.org.restore.useMutation({ onSuccess: () => { message.success('已恢复'); orgRecycle.refetch(); } });
+  const orgRestore = trpc.org.restore.useMutation({ onSuccess: () => { message.success('已恢复'); orgRecycle.refetch(); utils.org.list.invalidate(); } });
   const orgForceDel = trpc.org.forceDelete.useMutation({ onSuccess: () => { message.success('已永久删除'); orgRecycle.refetch(); } });
 
   const userRecycle = trpc.user.recycleBin.useQuery();
-  const userRestore = trpc.user.restore.useMutation({ onSuccess: () => { message.success('已恢复'); userRecycle.refetch(); } });
+  const userRestore = trpc.user.restore.useMutation({ onSuccess: () => { message.success('已恢复'); userRecycle.refetch(); utils.user.list.invalidate(); } });
   const userForceDel = trpc.user.forceDelete.useMutation({ onSuccess: () => { message.success('已永久删除'); userRecycle.refetch(); } });
 
   const roleRecycle = trpc.role.recycleBin.useQuery();
-  const roleRestore = trpc.role.restore.useMutation({ onSuccess: () => { message.success('已恢复'); roleRecycle.refetch(); } });
+  const roleRestore = trpc.role.restore.useMutation({ onSuccess: () => { message.success('已恢复'); roleRecycle.refetch(); utils.role.list.invalidate(); } });
   const roleForceDel = trpc.role.forceDelete.useMutation({ onSuccess: () => { message.success('已永久删除'); roleRecycle.refetch(); } });
 
   const menuRecycle = trpc.menu.recycleBin.useQuery();
-  const menuRestore = trpc.menu.restore.useMutation({ onSuccess: () => { message.success('已恢复'); menuRecycle.refetch(); } });
+  const menuRestore = trpc.menu.restore.useMutation({ onSuccess: () => { message.success('已恢复'); menuRecycle.refetch(); utils.menu.list.invalidate(); } });
   const menuForceDel = trpc.menu.forceDelete.useMutation({ onSuccess: () => { message.success('已永久删除'); menuRecycle.refetch(); } });
 
   const queryMap: Record<ModuleKey, { data: any; isLoading: boolean; refetch: () => void }> = {

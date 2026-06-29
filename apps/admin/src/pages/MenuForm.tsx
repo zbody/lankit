@@ -130,6 +130,8 @@ export default function MenuFormPage() {
   const createMutation = trpc.menu.create.useMutation({
     onSuccess: () => {
       message.success('创建成功');
+      utils.menu.list.invalidate();
+      utils.menu.myMenus.invalidate();
       navigate('/menus');
     },
     onError: (err) => message.error(err.message),

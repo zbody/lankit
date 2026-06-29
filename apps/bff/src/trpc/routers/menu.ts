@@ -102,6 +102,8 @@ export const menuRouter = router({
   delete: protectedProcedure.input(z.string()).mutation(async ({ input }) => {
     const children = await prisma.menu.count({ where: { parentId: input, deletedAt: null } });
     if (children > 0) throw new Error('请先删除子菜单');
+    const roleBindCount = await prisma.roleMenu.count({ where: { menuId: input } });
+    if (roleBindCount > 0) throw new Error('该菜单已绑定角色，无法删除');
     await prisma.menu.update({ where: { id: input }, data: { deletedAt: new Date() } });
     return { success: true };
   }),

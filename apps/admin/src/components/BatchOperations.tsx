@@ -49,6 +49,7 @@ export default function BatchOperations({ selectedIds, onCompleted }: BatchOpera
         m > 0 ? `已删除 ${res.affected} 个用户，${m} 个不存在或已删除` : `已删除 ${res.affected} 个用户`,
       );
       utils.user.list.invalidate();
+      utils.user.recycleBin.invalidate();
       onCompleted();
     },
     onError: (err) => message.error(err.message),

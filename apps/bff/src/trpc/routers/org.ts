@@ -91,6 +91,8 @@ export const orgRouter = router({
   delete: protectedProcedure.input(z.string()).mutation(async ({ input }) => {
     const children = await prisma.organization.count({ where: { parentId: input, deletedAt: null } });
     if (children > 0) throw new Error('请先删除子组织');
+    const userCount = await prisma.user.count({ where: { organizationId: input, deletedAt: null } });
+    if (userCount > 0) throw new Error('该组织下存在用户，无法删除');
     await prisma.organization.update({ where: { id: input }, data: { deletedAt: new Date() } });
     return { success: true };
   }),
