@@ -93,7 +93,7 @@ export default function AnnouncementListPage() {
     {
       title: '操作',
       key: 'action',
-      width: 180,
+      width: 260,
       render: (_: unknown, record: { id: string; title: string; content: string }) => (
         <Space>
           <Button

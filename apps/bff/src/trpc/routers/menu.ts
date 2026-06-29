@@ -70,6 +70,15 @@ export const menuRouter = router({
   create: protectedProcedure.input(menuSchema).mutation(async ({ input }) => {
     const code = input.code ?? (await generateCode(prisma, 'menu', 'MENU'));
     const item = await prisma.menu.create({ data: { ...input, code } });
+    // 自动给创建者所属的 admin 角色授权该菜单
+    const adminRoles = await prisma.role.findMany({ where: { code: 'admin' } });
+    for (const role of adminRoles) {
+      await prisma.roleMenu.upsert({
+        where: { roleId_menuId: { roleId: role.id, menuId: item.id } },
+        update: {},
+        create: { roleId: role.id, menuId: item.id },
+      });
+    }
     return item;
   }),
 

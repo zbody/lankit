@@ -13,11 +13,32 @@ const typeHelp: Record<string, string> = {
 
 /** 预定义的路由 → 组件映射 */
 const ROUTE_OPTIONS = [
+  { path: '/', component: 'Dashboard', label: '仪表盘' },
   { path: '/users', component: 'UserList', label: '用户管理' },
   { path: '/orgs', component: 'OrgList', label: '组织管理' },
   { path: '/roles', component: 'RoleList', label: '角色管理' },
   { path: '/menus', component: 'MenuList', label: '菜单管理' },
-  { path: '/', component: 'Dashboard', label: '仪表盘' },
+  { path: '/audit-logs', component: 'AuditLogList', label: '审计日志' },
+  { path: '/notifications', component: 'NotificationCenter', label: '通知中心' },
+  { path: '/settings', component: 'SystemSettings', label: '系统设置' },
+  { path: '/dict', component: 'DictTypeList', label: '数据字典' },
+  { path: '/files', component: 'FileList', label: '文件管理' },
+  { path: '/operation-logs', component: 'OperationLog', label: '操作日志' },
+  { path: '/performance', component: 'PerformanceMonitoring', label: '性能监控' },
+  { path: '/announcements', component: 'AnnouncementList', label: '公告管理' },
+  { path: '/api-keys', component: 'ApiKeyList', label: 'API 密钥' },
+  { path: '/email', component: 'EmailConfig', label: '邮件配置' },
+  { path: '/tasks', component: 'TaskList', label: '定时任务' },
+  { path: '/mfa', component: 'MFASettings', label: 'MFA 设置' },
+  { path: '/approvals', component: 'ApprovalList', label: '审批管理' },
+  { path: '/code-generator', component: 'CodeGenerator', label: '代码生成器' },
+  { path: '/theme', component: 'ThemeConfig', label: '主题配置' },
+  { path: '/categories', component: 'CategoryList', label: '分类管理' },
+  { path: '/articles', component: 'ArticleList', label: '文章管理' },
+  { path: '/contacts', component: 'ContactList', label: '联系表单' },
+  { path: '/oauth', component: 'OAuthSettings', label: 'OAuth 配置' },
+  { path: '/profile', component: 'Profile', label: '个人中心' },
+  { path: '/recycle-bin', component: 'RecycleBin', label: '回收站' },
 ];
 
 /** 常用图标列表 */
@@ -262,13 +283,7 @@ export default function MenuFormPage() {
             allowClear
             showSearch
             placeholder="自动填充"
-            options={[
-              { label: 'Dashboard', value: 'Dashboard' },
-              { label: 'UserList', value: 'UserList' },
-              { label: 'OrgList', value: 'OrgList' },
-              { label: 'RoleList', value: 'RoleList' },
-              { label: 'MenuList', value: 'MenuList' },
-            ]}
+            options={ROUTE_OPTIONS.map((r) => ({ label: r.component, value: r.component }))}
             filterOption={(input, option) =>
               String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
             }

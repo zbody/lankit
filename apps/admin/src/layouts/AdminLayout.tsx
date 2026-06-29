@@ -87,7 +87,10 @@ function buildSidebarMenus(
 
   // 没有父目录的独立菜单（仪表盘已在上面处理，跳过）
   for (const m of leaves) {
-    if (m.parentId || m.path === '/') continue; // 已有父目录
+    if (m.path === '/') continue; // 仪表盘已在上面处理
+    // 如果有 parentId 但对应的目录不在 dirs 中，视为孤立菜单，按独立菜单渲染
+    const parentExists = m.parentId && dirs.has(m.parentId);
+    if (parentExists) continue; // 已由目录渲染
     result.push({
       key: m.path!,
       icon: getIcon(m.icon ?? undefined),

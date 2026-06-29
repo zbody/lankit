@@ -37,9 +37,9 @@ const tenant = t.middleware(async ({ ctx, next }) => {
     });
   }
 
-  // 判断是否为超级管理员（拥有 system_admin 角色）
+  // 判断是否为超级管理员（拥有 admin 角色）
   const isSuperAdmin = user.roles.some(
-    (r: { role: { code: string } }) => r.role.code === 'system_admin',
+    (r: { role: { code: string } }) => r.role.code === 'admin',
   );
 
   // 确定租户 ID
